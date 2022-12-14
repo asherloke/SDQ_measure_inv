@@ -17,10 +17,90 @@ MCS <- read.csv("MCS.csv")
 
 
 # Data wrangling
+
+## Variable Selection
+
 ```{r}
 #we start by selecting variables we want (or in this case disselecting variables we don't want)
-data <- MCS %>% select(-6, -7, -8, -9, -10, -11, -12, -Freq_DistSleep_Wheez_CM_2, -Freq_DisturbedSleep_Wheezing_3, -Freq_DisturbedSleep_Wheezing_4, -Freq_DisturbedSleep_Wheezing_5, -w6_Sleep_school_night, -w6_Wake_school_day, -w6_Sleep_no_school, -w6_Wake_no_school, -w6_how_long_sleep, -w6_how_awake_night, -w7_sleep_qual, -IQ3, -IQ4)
-
-#we then insert NAs where they should be and recode the categorical numbers with letters so they make more sense.
+data <- MCS %>% select(-CNUM00, -Number_CMs_1, -Academic_Qual_Highest_1, -Banded_NETInc_LoneParent_1, -Banded_NETInc_Couple_1, -Total_Income_Couple_2, -Total_Income_LP_2, -Total_Joint_Income_3, -Total_Income_3, -Freq_DistSleep_Wheez_CM_2, -Freq_DisturbedSleep_Wheezing_3, -Freq_DisturbedSleep_Wheezing_4, -Freq_DisturbedSleep_Wheezing_5, -w6_Sleep_school_night, -w6_Wake_school_day, -w6_Sleep_no_school, -w6_Wake_no_school, -w6_how_long_sleep, -w6_how_awake_night, -w7_sleep_qual, -IQ3, -IQ4)
 ```
+
+## Recoding and Variable Renaming
+
+We then need to insert NAs where they should be and recode the categorical numbers with letters so they make more sense. We also rename the variables here so it is less confusing.
+
+**Ethnicity**
+
+```{r}
+#we first deal with ethnicity
+data %>% count(Ethnicity_11cat_1) #see original data and what we need to recode
+data_eth <- data %>% 
+  mutate(ethnicity = na_if(Ethnicity_11cat_1, "-1")) %>%
+  mutate(ethnicity = na_if(ethnicity, "-8")) %>%
+  mutate(ethnicity = na_if(ethnicity, "-9"))
+data_eth %>% count(ethnicity) #see if it worked
+#yes it worked
+
+data_eth <- data_eth %>%
+  mutate(ethnicity = recode(ethnicity, 
+                            "1" = "White",
+                            "2" = "Mixed", 
+                            "3" = "Indian", 
+                            "4" = "Pakistani",
+                            "5" = "Bangladeshi",
+                            "6" = "Other Asian",
+                            "7" = "Black Caribbean",
+                            "8" = "Black African", 
+                            "9" = "Other Black", 
+                            "10" = "Chinese", 
+                            "11" = "Other Ethnic Group")) %>% #this is taken from 11cat ethnicity questionnaire
+  select(-Ethnicity_11cat_1)
+
+#check that there should be 752 NAs
+data_eth %>% count(ethnicity) #yes, it worked.
+```
+
+**Sex**
+
+```{r}
+#then we deal with sex (there are 2 sex variables so we will deal with them seperately)
+
+#first sex 3
+data_eth %>% count(CM_Sex_3) #see original data and what we need to recode
+data_sex3 <- data_eth %>% 
+  mutate(sex3 = recode(CM_Sex_3, 
+                       "1" = "Male",
+                       "2" = "Female")) %>% #this is taken from BSEX questionnaire
+  select(-CM_Sex_3)
+
+#check that there should be 4008 NAs
+data_sex3 %>% count(sex3) #yes, it worked.
+```
+
+```{r}
+#then sex 4
+data_sex3 %>% count(Sex_CM_4) #see original data and what we need to recode
+#there is -1. From convention I assume this is -1
+
+data_sex <- data_sex3 %>% 
+  mutate(sex4 = na_if(Sex_CM_4, "-1"))
+data_sex %>% count(sex4) #see if it worked
+#yes it worked
+
+data_sex <- data_sex %>%
+  mutate(sex4 = recode(sex4, 
+                       "1" = "Male",
+                       "2" = "Female")) %>% #this is taken from BSEX questionnaire
+  select(-Sex_CM_4)
+
+#check that there should be 6187 NAs
+data_sex %>% count(sex4) #yes, it worked.
+```
+
+We need to deal with the two repeated sex columns.
+
+```{r}
+
+```
+
 
