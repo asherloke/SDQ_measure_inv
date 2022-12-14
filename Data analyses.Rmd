@@ -8,9 +8,19 @@ date: "2022-12-14"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Set up
+# Set up
 ```{r}
 library(tidyverse)
 library(lavaan)
+MCS <- read.csv("MCS.csv")
+```
+
+
+# Data wrangling
+```{r}
+#we start by selecting variables we want (or in this case disselecting variables we don't want)
+data <- MCS %>% select(-6, -7, -8, -9, -10, -11, -12, -Freq_DistSleep_Wheez_CM_2, -Freq_DisturbedSleep_Wheezing_3, -Freq_DisturbedSleep_Wheezing_4, -Freq_DisturbedSleep_Wheezing_5, -w6_Sleep_school_night, -w6_Wake_school_day, -w6_Sleep_no_school, -w6_Wake_no_school, -w6_how_long_sleep, -w6_how_awake_night, -w7_sleep_qual, -IQ3, -IQ4)
+
+#we then insert NAs where they should be and recode the categorical numbers with letters so they make more sense.
 ```
 
