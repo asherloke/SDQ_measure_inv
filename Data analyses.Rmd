@@ -100,7 +100,132 @@ data_sex %>% count(sex4) #yes, it worked.
 We need to deal with the two repeated sex columns.
 
 ```{r}
+data_sex_combined <- data_sex %>% 
+  unite("Sex_Com", 
+        sex3:sex4, 
+        sep = "", 
+        remove = F, 
+        na.rm = T) #create column called Sex_Com, take sex3 and sex4, with no seperation, do not remove columns, ignore NAs
+
+data_sex_combined %>% count(Sex_Com) #see what the values look like
+
+data_sex_final <- data_sex_combined %>%
+  mutate(sex_final = recode(Sex_Com, 
+                            "Male" = "Male", 
+                            "MaleMale" = "Male", 
+                            "Female" = "Female", 
+                            "FemaleFemale" = "Female", 
+                            "FemaleMale" = "FemaleMale")) %>% #recode the combined columns
+  mutate(sex_final = na_if(sex_final, "")) %>% #make blanks NAs (they were blank cause I told unite to ignore NAs)
+  select(-sex3, -sex4, -Sex_Com)
+
+data_sex_final %>% count(sex_final) #values all correspond
+```
+
+**ASD**
+
+ASD diagnoses was measured at waves 3,4, 5 and 6. If they were ever diagnosed with ASD, I want to consider them as ASD.
+
+Before we rename the values and complicate matters, lets first combine all ASD columns.
+
+```{r}
+#insert NAs
+
+#wave 3
+
+#first lets view the data
+data_sex_final %>% count(Autism_Diagnosis_3)
+data_ASD3 <- data_sex_final %>% 
+  mutate(ASD3 = na_if(Autism_Diagnosis_3, "-1")) %>%
+  mutate(ASD3 = na_if(ASD3, "-8")) %>%
+  mutate(ASD3 = na_if(ASD3, "-9"))
+data_ASD3 %>% count(ASD3) #see if it worked
+#yes it worked
+
+#wave 4
+
+#first lets view the data
+data_ASD3 %>% count(Autism_Diagnosis_4)
+data_ASD4 <- data_ASD3 %>% 
+  mutate(ASD4 = na_if(Autism_Diagnosis_4, "-1")) %>%
+  mutate(ASD4 = na_if(ASD4, "-8")) %>%
+  mutate(ASD4 = na_if(ASD4, "-9"))
+data_ASD4 %>% count(ASD4) #see if it worked
+#yes it worked
+
+#wave 5
+
+#first lets view the data
+data_ASD4 %>% count(Autism_Diagnosis_5)
+data_ASD5 <- data_ASD4 %>% 
+  mutate(ASD5 = na_if(Autism_Diagnosis_5, "-1")) %>%
+  mutate(ASD5 = na_if(ASD5, "-8")) %>%
+  mutate(ASD5 = na_if(ASD5, "-9"))
+data_ASD5 %>% count(ASD5) #see if it worked
+#yes it worked
+
+#wave 6
+
+#first lets view the data
+data_ASD5 %>% count(Autism_Diagnosis_6)
+data_ASD6 <- data_ASD5 %>% 
+  mutate(ASD6 = na_if(Autism_Diagnosis_6, "-1")) %>%
+  mutate(ASD6 = na_if(ASD6, "-8")) %>%
+  mutate(ASD6 = na_if(ASD6, "-9"))
+data_ASD6 %>% count(ASD6) #see if it worked
+#yes it worked
+
+#combine dataframes
+data_ASD_combined <- data_ASD6 %>% 
+  unite("ASD_Com", 
+        ASD3:ASD6, 
+        sep = "", 
+        remove = F, 
+        na.rm = T) #create column called ASD_Com, take ASD3:ASD6, with no seperation, do not remove columns, ignore NAs
+```
+
+After combining ASD columns, we can now recode them.
+
+``` {r}
+data_ASD_combined %>% count(ASD_Com) #see what the values look like
+
+data_ASD_final <- data_ASD_combined %>%
+  mutate(ASD_final = recode(ASD_Com, 
+                            "1" = "ASD", 
+                            "11" = "ASD", 
+                            "111" = "ASD", 
+                            "112" = "ASD", 
+                            "12" = "ASD", 
+                            "121" = "ASD", 
+                            "122" = "ASD", 
+                            "1221" = "ASD",
+                            "1222" = "ASD", 
+                            "2" = "Non-ASD", 
+                            "21" = "ASD", 
+                            "211" = "ASD", 
+                            "212" = "ASD", 
+                            "22" = "Non-ASD", 
+                            "221" = "ASD",
+                            "2211" = "ASD", 
+                            "2212" = "ASD", 
+                            "222" = "Non-ASD", 
+                            "2221" = "ASD", 
+                            "2222" = "Non-ASD")) %>% #recode the combined columns
+  mutate(ASD_final = na_if(ASD_final, "")) %>% #make blanks NAs (they were blank cause I told unite to ignore NAs)
+  select(-ASD3, 
+         -ASD4, 
+         -ASD5, 
+         -ASD6, 
+         -Autism_Diagnosis_3, 
+         -Autism_Diagnosis_4, 
+         -Autism_Diagnosis_5, 
+         -Autism_Diagnosis_6)
+
+data_ASD_final %>% count(ASD_final) #values all correspond
+```
+
+```{r}
 
 ```
 
-
+We don't want NA values in ASD (this is tollerable in sex as it isn't our variable of comparison)
