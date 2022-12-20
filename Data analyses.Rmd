@@ -219,13 +219,230 @@ data_ASD_final <- data_ASD_combined %>%
          -Autism_Diagnosis_3, 
          -Autism_Diagnosis_4, 
          -Autism_Diagnosis_5, 
-         -Autism_Diagnosis_6)
+         -Autism_Diagnosis_6,
+         -ASD_Com)
 
 data_ASD_final %>% count(ASD_final) #values all correspond
 ```
 
-```{r}
+We don't want NA values in ASD (this is tolerable in sex as it isn't our variable of comparison)
 
+```{r}
+data_ASD_final <- data_ASD_final %>% drop_na(ASD_final)
 ```
 
-We don't want NA values in ASD (this is tollerable in sex as it isn't our variable of comparison)
+## Wave 5 data
+
+Lets look at wave 5.
+
+In wave 5, there are only SDQ scores from parents and teachers.
+
+```{r}
+#wave 5 data
+data_w5 <- data_ASD_final %>% drop_na(P_w5_SDQ_01:P_w5_SDQ_25, T_w5_SDQ_01:T_w5_SDQ_25)
+```
+
+I need to deal with parent report and teacher report separately and create a report column stating who reporting it. To do this I need to create separate dataframes for parent and teacher (with reduced variables). Then we can combine the dataframes into one SDQ wave 5 data and fit it into the main data frame (with the full range of variables).
+
+``` {r}
+#parent report items
+data_w5_parent <- data_w5 %>% 
+  select(MCSID, P_w5_SDQ_01:P_w5_SDQ_25) %>% 
+  mutate(Q1 = P_w5_SDQ_01,
+         Q2 = P_w5_SDQ_02,
+         Q3 = P_w5_SDQ_03,
+         Q4 = P_w5_SDQ_04,
+         Q5 = P_w5_SDQ_05,
+         Q6 = P_w5_SDQ_06,
+         Q7 = P_w5_SDQ_07,
+         Q8 = P_w5_SDQ_08,
+         Q9 = P_w5_SDQ_09,
+         Q10 = P_w5_SDQ_10,
+         Q11 = P_w5_SDQ_11,
+         Q12 = P_w5_SDQ_12,
+         Q13 = P_w5_SDQ_13,
+         Q14 = P_w5_SDQ_14,
+         Q15 = P_w5_SDQ_15,
+         Q16 = P_w5_SDQ_16,
+         Q17 = P_w5_SDQ_17,
+         Q18 = P_w5_SDQ_18,
+         Q19 = P_w5_SDQ_19,
+         Q20 = P_w5_SDQ_20,
+         Q21 = P_w5_SDQ_21,
+         Q22 = P_w5_SDQ_22,
+         Q23 = P_w5_SDQ_23,
+         Q24 = P_w5_SDQ_24,
+         Q25 = P_w5_SDQ_25,
+         report = "parent") %>%
+  pivot_longer(c(Q1:Q25), names_to = "item", values_to = "score") %>%
+  select(MCSID, item, score, report)
+
+#teacher
+data_w5_teacher <- data_w5 %>% 
+  select(MCSID, T_w5_SDQ_01:T_w5_SDQ_25) %>% 
+  mutate(Q1 = T_w5_SDQ_01,
+         Q2 = T_w5_SDQ_02,
+         Q3 = T_w5_SDQ_03,
+         Q4 = T_w5_SDQ_04,
+         Q5 = T_w5_SDQ_05,
+         Q6 = T_w5_SDQ_06,
+         Q7 = T_w5_SDQ_07,
+         Q8 = T_w5_SDQ_08,
+         Q9 = T_w5_SDQ_09,
+         Q10 = T_w5_SDQ_10,
+         Q11 = T_w5_SDQ_11,
+         Q12 = T_w5_SDQ_12,
+         Q13 = T_w5_SDQ_13,
+         Q14 = T_w5_SDQ_14,
+         Q15 = T_w5_SDQ_15,
+         Q16 = T_w5_SDQ_16,
+         Q17 = T_w5_SDQ_17,
+         Q18 = T_w5_SDQ_18,
+         Q19 = T_w5_SDQ_19,
+         Q20 = T_w5_SDQ_20,
+         Q21 = T_w5_SDQ_21,
+         Q22 = T_w5_SDQ_22,
+         Q23 = T_w5_SDQ_23,
+         Q24 = T_w5_SDQ_24,
+         Q25 = T_w5_SDQ_25,
+         report = "teacher") %>%
+  pivot_longer(c(Q1:Q25), names_to = "item", values_to = "score") %>%
+  select(MCSID, item, score, report)
+
+#join them
+w5_parent_teacher <- union(data_w5_parent, data_w5_teacher)
+
+#join to main dataframe
+data_w5_final <- data_w5 %>% 
+  inner_join(w5_parent_teacher, by = "MCSID")
+```
+
+## Wave 7 data
+
+Lets look at wave 7.
+
+In wave 7, there are only SDQ scores from parents and cohort members (self-report).
+
+```{r}
+#wave 5 data
+data_w7 <- data_ASD_final %>% drop_na(P_w7_SDQ_01:P_w7_SDQ_25, CM_w7_SDQ_01:CM_w7_SDQ_25)
+```
+
+I need to deal with parent report and self-report separately and create a report column stating who reporting it. To do this I need to create separate dataframes for parent and self (with reduced variables). Then we can combine the dataframes into one SDQ wave 5 data and fit it into the main data frame (with the full range of variables).
+
+``` {r}
+#parent report items
+data_w7_parent <- data_w7 %>% 
+  select(MCSID, P_w7_SDQ_01:P_w7_SDQ_25) %>% 
+  mutate(Q1 = P_w7_SDQ_01,
+         Q2 = P_w7_SDQ_02,
+         Q3 = P_w7_SDQ_03,
+         Q4 = P_w7_SDQ_04,
+         Q5 = P_w7_SDQ_05,
+         Q6 = P_w7_SDQ_06,
+         Q7 = P_w7_SDQ_07,
+         Q8 = P_w7_SDQ_08,
+         Q9 = P_w7_SDQ_09,
+         Q10 = P_w7_SDQ_10,
+         Q11 = P_w7_SDQ_11,
+         Q12 = P_w7_SDQ_12,
+         Q13 = P_w7_SDQ_13,
+         Q14 = P_w7_SDQ_14,
+         Q15 = P_w7_SDQ_15,
+         Q16 = P_w7_SDQ_16,
+         Q17 = P_w7_SDQ_17,
+         Q18 = P_w7_SDQ_18,
+         Q19 = P_w7_SDQ_19,
+         Q20 = P_w7_SDQ_20,
+         Q21 = P_w7_SDQ_21,
+         Q22 = P_w7_SDQ_22,
+         Q23 = P_w7_SDQ_23,
+         Q24 = P_w7_SDQ_24,
+         Q25 = P_w7_SDQ_25,
+         report = "parent") %>%
+  pivot_longer(c(Q1:Q25), names_to = "item", values_to = "score") %>%
+  select(MCSID, item, score, report)
+
+#self-report
+data_w7_CM <- data_w7 %>% 
+  select(MCSID, CM_w7_SDQ_01:CM_w7_SDQ_25) %>% 
+  mutate(Q1 = CM_w7_SDQ_01,
+         Q2 = CM_w7_SDQ_02,
+         Q3 = CM_w7_SDQ_03,
+         Q4 = CM_w7_SDQ_04,
+         Q5 = CM_w7_SDQ_05,
+         Q6 = CM_w7_SDQ_06,
+         Q7 = CM_w7_SDQ_07,
+         Q8 = CM_w7_SDQ_08,
+         Q9 = CM_w7_SDQ_09,
+         Q10 = CM_w7_SDQ_10,
+         Q11 = CM_w7_SDQ_11,
+         Q12 = CM_w7_SDQ_12,
+         Q13 = CM_w7_SDQ_13,
+         Q14 = CM_w7_SDQ_14,
+         Q15 = CM_w7_SDQ_15,
+         Q16 = CM_w7_SDQ_16,
+         Q17 = CM_w7_SDQ_17,
+         Q18 = CM_w7_SDQ_18,
+         Q19 = CM_w7_SDQ_19,
+         Q20 = CM_w7_SDQ_20,
+         Q21 = CM_w7_SDQ_21,
+         Q22 = CM_w7_SDQ_22,
+         Q23 = CM_w7_SDQ_23,
+         Q24 = CM_w7_SDQ_24,
+         Q25 = CM_w7_SDQ_25,
+         report = "self") %>%
+  pivot_longer(c(Q1:Q25), names_to = "item", values_to = "score") %>%
+  select(MCSID, item, score, report)
+
+#join them
+w7_parent_CM <- union(data_w7_parent, data_w7_CM)
+
+#join to main dataframe
+data_w7_final <- data_w7 %>% 
+  inner_join(w7_parent_CM, by = "MCSID")
+```
+
+## Clean up dataframes we don't need
+
+```{r}
+rm(data)
+rm(data_ASD_combined)
+rm(data_ASD_final)
+rm(data_ASD3)
+rm(data_ASD4)
+rm(data_ASD5)
+rm(data_ASD6)
+rm(data_eth)
+rm(data_sex)
+rm(data_sex_combined)
+rm(data_sex_final)
+rm(data_sex3)
+rm(data_w5)
+rm(data_w5_parent)
+rm(data_w5_teacher)
+rm(data_w7)
+rm(data_w7_CM)
+rm(data_w7_parent)
+rm(MCS)
+rm(w5_parent_teacher)
+rm(w7_parent_CM)
+```
+
+# Descriptive Statistics
+
+# Wave 5
+
+**Overall ASD**
+
+**Sex and ASD**
+
+**Ethnicity and ASD**
+
+**Overall SDQ**
+
+**SDQ by sex**
+
+**SDQ by ASD**
+
+#Wave 7
