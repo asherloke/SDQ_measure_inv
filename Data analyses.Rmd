@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(lavaan)
+library(semPlot)
 library(semTools)
 MCS <- read.csv("MCS.csv")
 ```
@@ -1422,6 +1423,31 @@ prosocial =~ Q1 + Q4 + Q9 + Q17 + Q20
 
 base_w5_td <- cfa(SDQ, data = w5_measurement_td, std.lv = TRUE, meanstructure = TRUE)
 summary(base_w5_td, rsquare = T, standardized = T, fit.measures = T)
+
+#Plot
+semPaths(object = base_w5_td, #model object
+         what = 'est', #est gives thicknesses and numbers, 'std' gives standardized values
+         fixedStyle = 1, #other numbers gives dotted line for fixed params
+         sizeMan = 4, #observed variable text size
+         intercepts = F,
+         residuals = T,
+         exoCov = F,
+         sizeLat = 6, #latent variable text size
+         edge.label.cex = 0.5, #size of numbers
+         posCol = "dark green",
+         negCol = "red",
+         nCharNodes = 0,#controls label length (0=full name, 2=abrev to 2 chars)
+         layout='tree2', #note we had to change this to make the layout
+         edge.width = 1,
+         filetype = "jpg",
+         filename = "SDQ_model",
+         height = 2.5,
+         optimizeLatRes = T,
+         fade = F,
+         edge.label.position = c(.3,.4,.5,.6,.7,.3,.4,.5,.6,.7,.3,.4,.5,.6,.7,.3,.4,.5,.6,.7,.3,.4,.5,.6,.7,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5),
+         rotation=1) #moves boxes around
+
+#c(.3,.4,.5,.6,.7,.3,.4,.5,.6,.7,.3,.4,.5,.6,.7,.3,.4,.5,.6,.7,.3,.4,.5,.6,.7,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5),
 ```
 
 ### Configural Invariance
