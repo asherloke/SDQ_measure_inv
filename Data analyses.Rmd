@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
+library(lsr)
+library(broom)
 library(lavaan)
 library(semPlot)
 library(semTools)
@@ -118,7 +120,7 @@ data_sex_final <- data_sex_combined %>%
                             "MaleMale" = "Male", 
                             "Female" = "Female", 
                             "FemaleFemale" = "Female", 
-                            "FemaleMale" = "FemaleMale")) %>% #recode the combined columns
+                            "FemaleMale" = "Male")) %>% #recode the combined columns, later gender information from MCS4 was taken in the event of discrepant gender information
   mutate(sex_final = na_if(sex_final, "")) %>% #make blanks NAs (they were blank cause I told unite to ignore NAs)
   select(-sex3, -sex4, -Sex_Com)
 
@@ -254,35 +256,10 @@ I need to deal with parent report and teacher report separately and create a rep
 ``` {r}
 #parent report items
 data_w5_parent <- data_w5 %>% 
-  select(MCSID, P_w5_SDQ_01:P_w5_SDQ_25) %>% 
-  mutate(Q1 = P_w5_SDQ_01,
-         Q2 = P_w5_SDQ_02,
-         Q3 = P_w5_SDQ_03,
-         Q4 = P_w5_SDQ_04,
-         Q5 = P_w5_SDQ_05,
-         Q6 = P_w5_SDQ_06,
-         Q7 = P_w5_SDQ_07,
-         Q8 = P_w5_SDQ_08,
-         Q9 = P_w5_SDQ_09,
-         Q10 = P_w5_SDQ_10,
-         Q11 = P_w5_SDQ_11,
-         Q12 = P_w5_SDQ_12,
-         Q13 = P_w5_SDQ_13,
-         Q14 = P_w5_SDQ_14,
-         Q15 = P_w5_SDQ_15,
-         Q16 = P_w5_SDQ_16,
-         Q17 = P_w5_SDQ_17,
-         Q18 = P_w5_SDQ_18,
-         Q19 = P_w5_SDQ_19,
-         Q20 = P_w5_SDQ_20,
-         Q21 = P_w5_SDQ_21,
-         Q22 = P_w5_SDQ_22,
-         Q23 = P_w5_SDQ_23,
-         Q24 = P_w5_SDQ_24,
-         Q25 = P_w5_SDQ_25,
-         report = "parent") %>%
-  pivot_longer(c(Q1:Q25), names_to = "item", values_to = "score") %>%
-  select(MCSID, item, score, report)
+  select(MCSID, P_w5_SDQ_01:P_w5_SDQ_25, ethnicity, sex_final, ASD_final) %>% 
+  mutate(report = "parent") %>%
+  pivot_longer(c(P_w5_SDQ_01:P_w5_SDQ_25), names_to = "item", values_to = "score") %>%
+  select(MCSID, item, score, report, ethnicity, sex_final, ASD_final)
 ```
 
 **Recoding**
@@ -315,15 +292,6 @@ data_w5_parent %>% count(score)
 #looks good.
 ```
 
-**No NAs!**
-
-``` {r}
-data_w5_parent <- data_w5_parent %>% 
-  pivot_wider(names_from = item, values_from = score) %>% 
-  drop_na(Q1:Q25) %>% 
-  pivot_longer(Q1:Q25, names_to = "item", values_to = "score")
-```
-
 ### Teacher Report
 
 **Draw items**
@@ -331,35 +299,10 @@ data_w5_parent <- data_w5_parent %>%
 ``` {r}
 #teacher
 data_w5_teacher <- data_w5 %>% 
-  select(MCSID, T_w5_SDQ_01:T_w5_SDQ_25) %>% 
-  mutate(Q1 = T_w5_SDQ_01,
-         Q2 = T_w5_SDQ_02,
-         Q3 = T_w5_SDQ_03,
-         Q4 = T_w5_SDQ_04,
-         Q5 = T_w5_SDQ_05,
-         Q6 = T_w5_SDQ_06,
-         Q7 = T_w5_SDQ_07,
-         Q8 = T_w5_SDQ_08,
-         Q9 = T_w5_SDQ_09,
-         Q10 = T_w5_SDQ_10,
-         Q11 = T_w5_SDQ_11,
-         Q12 = T_w5_SDQ_12,
-         Q13 = T_w5_SDQ_13,
-         Q14 = T_w5_SDQ_14,
-         Q15 = T_w5_SDQ_15,
-         Q16 = T_w5_SDQ_16,
-         Q17 = T_w5_SDQ_17,
-         Q18 = T_w5_SDQ_18,
-         Q19 = T_w5_SDQ_19,
-         Q20 = T_w5_SDQ_20,
-         Q21 = T_w5_SDQ_21,
-         Q22 = T_w5_SDQ_22,
-         Q23 = T_w5_SDQ_23,
-         Q24 = T_w5_SDQ_24,
-         Q25 = T_w5_SDQ_25,
-         report = "teacher") %>%
-  pivot_longer(c(Q1:Q25), names_to = "item", values_to = "score") %>%
-  select(MCSID, item, score, report)
+  select(MCSID, T_w5_SDQ_01:T_w5_SDQ_25, ethnicity, sex_final, ASD_final) %>% 
+  mutate(report = "teacher") %>%
+  pivot_longer(c(T_w5_SDQ_01:T_w5_SDQ_25), names_to = "item", values_to = "score") %>%
+  select(MCSID, item, score, report, ethnicity, sex_final, ASD_final)
 ```
 
 **Recoding**
@@ -391,26 +334,95 @@ data_w5_teacher %>% count(score)
 #looks good.
 ```
 
-**No NAs!**
-
-``` {r}
-data_w5_teacher <- data_w5_teacher %>% 
-  pivot_wider(names_from = item, values_from = score) %>% 
-  drop_na(Q1:Q25) %>% 
-  pivot_longer(Q1:Q25, names_to = "item", values_to = "score")
-```
-
 ### Final Data for Wave 5
 
 Now combine this to main dataframe for wave 5.
 
 ``` {r}
 #join them
-w5_parent_teacher <- bind_rows(data_w5_parent, data_w5_teacher)
+data_w5_parent <- data_w5_parent %>% 
+  pivot_wider(names_from = item, values_from = score)
+data_w5_teacher <- data_w5_teacher %>% 
+  pivot_wider(names_from = item, values_from = score)
+w5_parent_teacher <- inner_join(data_w5_parent, data_w5_teacher, by = "MCSID")
 
-#join to main dataframe
-data_w5_final <- data_w5 %>% 
-  inner_join(w5_parent_teacher, by = "MCSID")
+#No NAs
+w5_parent_teacher <- w5_parent_teacher %>% 
+  drop_na(P_w5_SDQ_01:P_w5_SDQ_25, T_w5_SDQ_01:T_w5_SDQ_25)
+
+#Recode item names
+w5_parent_teacher1 <- w5_parent_teacher %>%
+  select(MCSID, report.x, P_w5_SDQ_01:P_w5_SDQ_25, ethnicity.x, sex_final.x, ASD_final.x) %>%
+  mutate(Q1 = P_w5_SDQ_01,
+         Q2 = P_w5_SDQ_02,
+         Q3 = P_w5_SDQ_03,
+         Q4 = P_w5_SDQ_04,
+         Q5 = P_w5_SDQ_05,
+         Q6 = P_w5_SDQ_06,
+         Q7 = P_w5_SDQ_07,
+         Q8 = P_w5_SDQ_08,
+         Q9 = P_w5_SDQ_09,
+         Q10 = P_w5_SDQ_10,
+         Q11 = P_w5_SDQ_11,
+         Q12 = P_w5_SDQ_12,
+         Q13 = P_w5_SDQ_13,
+         Q14 = P_w5_SDQ_14,
+         Q15 = P_w5_SDQ_15,
+         Q16 = P_w5_SDQ_16,
+         Q17 = P_w5_SDQ_17,
+         Q18 = P_w5_SDQ_18,
+         Q19 = P_w5_SDQ_19,
+         Q20 = P_w5_SDQ_20,
+         Q21 = P_w5_SDQ_21,
+         Q22 = P_w5_SDQ_22,
+         Q23 = P_w5_SDQ_23,
+         Q24 = P_w5_SDQ_24,
+         Q25 = P_w5_SDQ_25,
+         report = report.x,
+         ethnicity = ethnicity.x,
+         sex_final = sex_final.x,
+         ASD_final = ASD_final.x) %>%
+  pivot_longer(Q1:Q25, names_to = "item", values_to = "score") %>%
+  select(MCSID, report, item, score, ethnicity, sex_final, ASD_final)
+
+w5_parent_teacher2 <- w5_parent_teacher %>%
+  select(MCSID, report.y, T_w5_SDQ_01:T_w5_SDQ_25, ethnicity.y, sex_final.y, ASD_final.y) %>%
+  mutate(Q1 = T_w5_SDQ_01,
+         Q2 = T_w5_SDQ_02,
+         Q3 = T_w5_SDQ_03,
+         Q4 = T_w5_SDQ_04,
+         Q5 = T_w5_SDQ_05,
+         Q6 = T_w5_SDQ_06,
+         Q7 = T_w5_SDQ_07,
+         Q8 = T_w5_SDQ_08,
+         Q9 = T_w5_SDQ_09,
+         Q10 = T_w5_SDQ_10,
+         Q11 = T_w5_SDQ_11,
+         Q12 = T_w5_SDQ_12,
+         Q13 = T_w5_SDQ_13,
+         Q14 = T_w5_SDQ_14,
+         Q15 = T_w5_SDQ_15,
+         Q16 = T_w5_SDQ_16,
+         Q17 = T_w5_SDQ_17,
+         Q18 = T_w5_SDQ_18,
+         Q19 = T_w5_SDQ_19,
+         Q20 = T_w5_SDQ_20,
+         Q21 = T_w5_SDQ_21,
+         Q22 = T_w5_SDQ_22,
+         Q23 = T_w5_SDQ_23,
+         Q24 = T_w5_SDQ_24,
+         Q25 = T_w5_SDQ_25,
+         report = report.y,
+         ethnicity = ethnicity.y,
+         sex_final = sex_final.y,
+         ASD_final = ASD_final.y) %>%
+  pivot_longer(Q1:Q25, names_to = "item", values_to = "score") %>%
+  select(MCSID, report, item, score, ethnicity, sex_final, ASD_final)
+
+data_w5_final <- bind_rows(w5_parent_teacher1, w5_parent_teacher2)
+
+rm(w5_parent_teacher1)
+rm(w5_parent_teacher2)
 ```
 
 ## Wave 7 data
@@ -422,7 +434,7 @@ Lets look at wave 7.
 In wave 7, there are only SDQ scores from parents and cohort members (self-report). We don't want any missing data.
 
 ```{r}
-#wave 5 data
+#wave 7 data
 data_w7 <- data_ASD_final %>% drop_na(P_w7_SDQ_01:P_w7_SDQ_25, CM_w7_SDQ_01:CM_w7_SDQ_25)
 ```
 
@@ -435,35 +447,10 @@ I need to deal with parent report and self-report separately and create a report
 ``` {r}
 #parent report items
 data_w7_parent <- data_w7 %>% 
-  select(MCSID, P_w7_SDQ_01:P_w7_SDQ_25) %>% 
-  mutate(Q1 = P_w7_SDQ_01,
-         Q2 = P_w7_SDQ_02,
-         Q3 = P_w7_SDQ_03,
-         Q4 = P_w7_SDQ_04,
-         Q5 = P_w7_SDQ_05,
-         Q6 = P_w7_SDQ_06,
-         Q7 = P_w7_SDQ_07,
-         Q8 = P_w7_SDQ_08,
-         Q9 = P_w7_SDQ_09,
-         Q10 = P_w7_SDQ_10,
-         Q11 = P_w7_SDQ_11,
-         Q12 = P_w7_SDQ_12,
-         Q13 = P_w7_SDQ_13,
-         Q14 = P_w7_SDQ_14,
-         Q15 = P_w7_SDQ_15,
-         Q16 = P_w7_SDQ_16,
-         Q17 = P_w7_SDQ_17,
-         Q18 = P_w7_SDQ_18,
-         Q19 = P_w7_SDQ_19,
-         Q20 = P_w7_SDQ_20,
-         Q21 = P_w7_SDQ_21,
-         Q22 = P_w7_SDQ_22,
-         Q23 = P_w7_SDQ_23,
-         Q24 = P_w7_SDQ_24,
-         Q25 = P_w7_SDQ_25,
-         report = "parent") %>%
-  pivot_longer(c(Q1:Q25), names_to = "item", values_to = "score") %>%
-  select(MCSID, item, score, report)
+  select(MCSID, P_w7_SDQ_01:P_w7_SDQ_25, ethnicity, sex_final, ASD_final) %>% 
+  mutate(report = "parent") %>%
+  pivot_longer(c(P_w7_SDQ_01:P_w7_SDQ_25), names_to = "item", values_to = "score") %>%
+  select(MCSID, item, score, report,ethnicity, sex_final, ASD_final)
 ```
 
 **Recoding**
@@ -496,15 +483,6 @@ data_w7_parent %>% count(score)
 #looks good.
 ```
 
-**No NAs!**
-
-``` {r}
-data_w7_parent <- data_w7_parent %>% 
-  pivot_wider(names_from = item, values_from = score) %>% 
-  drop_na(Q1:Q25) %>% 
-  pivot_longer(Q1:Q25, names_to = "item", values_to = "score")
-```
-
 ### Self-Report (CM)
 
 **Draw items**
@@ -512,35 +490,10 @@ data_w7_parent <- data_w7_parent %>%
 ``` {r}
 #self-report
 data_w7_CM <- data_w7 %>% 
-  select(MCSID, CM_w7_SDQ_01:CM_w7_SDQ_25) %>% 
-  mutate(Q1 = CM_w7_SDQ_01,
-         Q2 = CM_w7_SDQ_02,
-         Q3 = CM_w7_SDQ_03,
-         Q4 = CM_w7_SDQ_04,
-         Q5 = CM_w7_SDQ_05,
-         Q6 = CM_w7_SDQ_06,
-         Q7 = CM_w7_SDQ_07,
-         Q8 = CM_w7_SDQ_08,
-         Q9 = CM_w7_SDQ_09,
-         Q10 = CM_w7_SDQ_10,
-         Q11 = CM_w7_SDQ_11,
-         Q12 = CM_w7_SDQ_12,
-         Q13 = CM_w7_SDQ_13,
-         Q14 = CM_w7_SDQ_14,
-         Q15 = CM_w7_SDQ_15,
-         Q16 = CM_w7_SDQ_16,
-         Q17 = CM_w7_SDQ_17,
-         Q18 = CM_w7_SDQ_18,
-         Q19 = CM_w7_SDQ_19,
-         Q20 = CM_w7_SDQ_20,
-         Q21 = CM_w7_SDQ_21,
-         Q22 = CM_w7_SDQ_22,
-         Q23 = CM_w7_SDQ_23,
-         Q24 = CM_w7_SDQ_24,
-         Q25 = CM_w7_SDQ_25,
-         report = "self") %>%
-  pivot_longer(c(Q1:Q25), names_to = "item", values_to = "score") %>%
-  select(MCSID, item, score, report)
+  select(MCSID, CM_w7_SDQ_01:CM_w7_SDQ_25, ethnicity, sex_final, ASD_final) %>% 
+  mutate(report = "self") %>%
+  pivot_longer(c(CM_w7_SDQ_01:CM_w7_SDQ_25), names_to = "item", values_to = "score") %>%
+  select(MCSID, item, score, report, ethnicity, sex_final, ASD_final)
 ```
 
 **Recoding**
@@ -573,26 +526,95 @@ data_w7_CM %>% count(score)
 #looks good.
 ```
 
-**No NAs!**
-
-``` {r}
-data_w7_CM <- data_w7_CM %>% 
-  pivot_wider(names_from = item, values_from = score) %>% 
-  drop_na(Q1:Q25) %>% 
-  pivot_longer(Q1:Q25, names_to = "item", values_to = "score")
-```
-
 **Final Data for Wave 7**
 
 Now combine this to main dataframe for wave 7.
 
 ``` {r}
 #join them
-w7_parent_CM <- bind_rows(data_w7_parent, data_w7_CM)
+data_w7_parent <- data_w7_parent %>% 
+  pivot_wider(names_from = item, values_from = score)
+data_w7_CM <- data_w7_CM %>% 
+  pivot_wider(names_from = item, values_from = score)
+w7_parent_CM <- inner_join(data_w7_parent, data_w7_CM, by = "MCSID")
 
-#join to main dataframe
-data_w7_final <- data_w7 %>% 
-  inner_join(w7_parent_CM, by = "MCSID")
+#No NAs
+w7_parent_CM <- w7_parent_CM %>% 
+  drop_na(P_w7_SDQ_01:P_w7_SDQ_25, CM_w7_SDQ_01:CM_w7_SDQ_25)
+
+#Recode item names
+w7_parent_CM1 <- w7_parent_CM %>%
+  select(MCSID, report.x, P_w7_SDQ_01:P_w7_SDQ_25, ethnicity.x, sex_final.x, ASD_final.x) %>%
+  mutate(Q1 = P_w7_SDQ_01,
+         Q2 = P_w7_SDQ_02,
+         Q3 = P_w7_SDQ_03,
+         Q4 = P_w7_SDQ_04,
+         Q5 = P_w7_SDQ_05,
+         Q6 = P_w7_SDQ_06,
+         Q7 = P_w7_SDQ_07,
+         Q8 = P_w7_SDQ_08,
+         Q9 = P_w7_SDQ_09,
+         Q10 = P_w7_SDQ_10,
+         Q11 = P_w7_SDQ_11,
+         Q12 = P_w7_SDQ_12,
+         Q13 = P_w7_SDQ_13,
+         Q14 = P_w7_SDQ_14,
+         Q15 = P_w7_SDQ_15,
+         Q16 = P_w7_SDQ_16,
+         Q17 = P_w7_SDQ_17,
+         Q18 = P_w7_SDQ_18,
+         Q19 = P_w7_SDQ_19,
+         Q20 = P_w7_SDQ_20,
+         Q21 = P_w7_SDQ_21,
+         Q22 = P_w7_SDQ_22,
+         Q23 = P_w7_SDQ_23,
+         Q24 = P_w7_SDQ_24,
+         Q25 = P_w7_SDQ_25,
+         report = report.x,
+         ethnicity = ethnicity.x,
+         sex_final = sex_final.x,
+         ASD_final = ASD_final.x) %>%
+  pivot_longer(Q1:Q25, names_to = "item", values_to = "score") %>%
+  select(MCSID, report, item, score, ethnicity, sex_final, ASD_final)
+
+w7_parent_CM2 <- w7_parent_CM %>%
+  select(MCSID, report.y, CM_w7_SDQ_01:CM_w7_SDQ_25, ethnicity.y, sex_final.y, ASD_final.y) %>%
+  mutate(Q1 = CM_w7_SDQ_01,
+         Q2 = CM_w7_SDQ_02,
+         Q3 = CM_w7_SDQ_03,
+         Q4 = CM_w7_SDQ_04,
+         Q5 = CM_w7_SDQ_05,
+         Q6 = CM_w7_SDQ_06,
+         Q7 = CM_w7_SDQ_07,
+         Q8 = CM_w7_SDQ_08,
+         Q9 = CM_w7_SDQ_09,
+         Q10 = CM_w7_SDQ_10,
+         Q11 = CM_w7_SDQ_11,
+         Q12 = CM_w7_SDQ_12,
+         Q13 = CM_w7_SDQ_13,
+         Q14 = CM_w7_SDQ_14,
+         Q15 = CM_w7_SDQ_15,
+         Q16 = CM_w7_SDQ_16,
+         Q17 = CM_w7_SDQ_17,
+         Q18 = CM_w7_SDQ_18,
+         Q19 = CM_w7_SDQ_19,
+         Q20 = CM_w7_SDQ_20,
+         Q21 = CM_w7_SDQ_21,
+         Q22 = CM_w7_SDQ_22,
+         Q23 = CM_w7_SDQ_23,
+         Q24 = CM_w7_SDQ_24,
+         Q25 = CM_w7_SDQ_25,
+         report = report.y,
+         ethnicity = ethnicity.y,
+         sex_final = sex_final.y,
+         ASD_final = ASD_final.y) %>%
+  pivot_longer(Q1:Q25, names_to = "item", values_to = "score") %>%
+  select(MCSID, report, item, score, ethnicity, sex_final, ASD_final)
+
+data_w7_final <- bind_rows(w7_parent_CM1, w7_parent_CM2)
+
+rm(w7_parent_CM1)
+rm(w7_parent_CM2)
 ```
 
 ## Clean up dataframes we don't need
@@ -625,15 +647,19 @@ rm(w7_parent_CM)
 
 ## Wave 5
 
-### Parent report
-
-**Overall ASD**
+### ASD
 
 ``` {r}
 #create wide format
 data_w5_desc_p <- data_w5_final %>%
   filter(report == "parent") %>%
   pivot_wider(names_from = item, values_from = c(score))
+
+data_w5_desc_t <- data_w5_final %>%
+  filter(report == "teacher") %>%
+  pivot_wider(names_from = item, values_from = c(score))
+
+#using either dataset is okay since each participant has both parent and teacher scores
 ```
 
 Report ASD diagnoses
@@ -646,7 +672,7 @@ data_w5_desc_p %>% count(ASD_final) %>% mutate(prop = n/sum(n))
 #count data, no need for graph
 ```
 
-**Sex and ASD**
+### Sex and ASD
 
 ``` {r}
 #Sex only
@@ -654,20 +680,42 @@ data_w5_desc_p %>% count(ASD_final) %>% mutate(prop = n/sum(n))
 data_w5_desc_p %>% count(sex_final) %>% mutate(prop = n/sum(n))
 
 #Sex and ASD
-#table
-data_w5_desc_p %>% count(sex_final, ASD_final) %>% mutate(prop = n/sum(n))
-
-#ASD
+#ASD group
 data_w5_desc_p %>% filter(ASD_final == "ASD") %>% count(sex_final) %>% mutate(prop = n/sum(n))
 
-#non-ASD
+#non-ASD group
 data_w5_desc_p %>% filter(ASD_final == "Non-ASD") %>% count(sex_final) %>% mutate(prop = n/sum(n))
 
 #graph
-data_w5_desc_p %>% count(sex_final, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ASD_final, y = n, fill = sex_final)) + geom_bar(stat = "identity", position = "dodge")
+data_w5_desc_p %>% 
+  count(sex_final, ASD_final) %>% 
+  mutate(prop = n/sum(n)) %>%
+  ggplot(aes(x = ASD_final, y = n, fill = sex_final)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "ASD Diagnosis", y = "Number of Participants", fill = "Sex") + 
+  theme_classic()
+ggsave("w5 sex and ASD.jpg")
 ```
 
-**Ethnicity and ASD**
+### Sex and ASD chi-squared
+
+``` {r}
+results <- chisq.test(x = data_w5_desc_p %>% pull(sex_final), # 1st grouping variable
+                      y = data_w5_desc_p %>% pull(ASD_final), # 2nd grouping variable
+                      correct = T) %>% # df=1, continuity correction
+  tidy()
+
+results
+#chi(1) = 85.84, p<.001
+
+eff_size <- cramersV(x = data_w5_desc_p %>% pull(sex_final), 
+                     y = data_w5_desc_p %>% pull(ASD_final), 
+                     correct = T)
+eff_size
+#Phi φ = .12
+```
+
+### Ethnicity and ASD
 
 ``` {r}
 #Ethnicity only
@@ -675,24 +723,16 @@ data_w5_desc_p %>% count(sex_final, ASD_final) %>% mutate(prop = n/sum(n)) %>% g
 data_w5_desc_p %>% count(ethnicity) %>% mutate(prop = n/sum(n))
 
 #Ethnicity and ASD
-#table
-data_w5_desc_p %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n))
-
-#ASD
+#ASD group
 data_w5_desc_p %>% filter(ASD_final == "ASD") %>% count(ethnicity) %>% mutate(prop = n/sum(n))
 
-#non-ASD
+#non-ASD group
 data_w5_desc_p %>% filter(ASD_final == "Non-ASD") %>% count(ethnicity) %>% mutate(prop = n/sum(n))
 
-#graph
-data_w5_desc_p %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ASD_final, y = n, fill = ethnicity)) + geom_bar(stat = "identity", position = "dodge")
-
-data_w5_desc_p %>% filter(ASD_final == "ASD") %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ethnicity, y = n, fill = ethnicity)) + geom_bar(stat = "identity", position = "dodge")
-
-data_w5_desc_p %>% filter(ASD_final == "Non-ASD") %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ethnicity, y = n, fill = ethnicity)) + geom_bar(stat = "identity", position = "dodge")
+#no graph and no chi squared analyses due to predominant white population. Report proportions.
 ```
 
-**Overall SDQ**
+### Overall SDQ (Parental vs Teacher Scores)
 
 We need to first calculate subscale scores, and total difficulty score.
 
@@ -704,6 +744,56 @@ Peer problems scale: Items 6, 11, 14, 19, 23
 Prosocial scale: Items 1, 4, 9, 17, 20
 
 ``` {r}
+#create wide format
+data_w5_final <- data_w5_final %>%
+  pivot_wider(names_from = item, values_from = c(score))
+
+data_w5_final <- data_w5_final %>% 
+  mutate(emotional = Q3 + Q8 + Q13 + Q16 + Q24, 
+         conduct = Q5 + Q7 + Q12 + Q18 + Q22, 
+         hyperactivity = Q2 + Q10 + Q15 + Q21 + Q25, 
+         peer = Q6 + Q11 + Q14 + Q19 + Q23, 
+         prosocial = Q1 + Q4 + Q9 + Q17 + Q20, 
+         difficulty = emotional + conduct + hyperactivity + peer)
+```
+
+``` {r}
+#table
+data_w5_final %>% 
+  group_by(report) %>% 
+  summarise(mean_diff = mean(difficulty), 
+                             sd_diff = sd(difficulty), 
+                             min_diff = min(difficulty), 
+                             max_diff = max(difficulty), 
+                             mean_pro = mean(prosocial), 
+                             sd_pro = sd(prosocial), 
+                             min_pro = min(prosocial), 
+                             max_pro = max(prosocial))
+
+#graph
+#difficulty
+data_w5_final %>% 
+  ggplot(aes(x = difficulty)) + 
+  geom_histogram(binwidth = 1) +
+  labs(x = "Total Difficulty Scores", y = "Number of Participants") + 
+  facet_wrap(~report, scales = "free") + 
+  theme_classic() #normal distribution with slight positive skew / right skew
+ggsave("w5 SDQ difficulties hist.jpg")
+
+#prosocial
+data_w5_final %>% 
+  ggplot(aes(x = prosocial)) + 
+  geom_histogram(binwidth = 1) +
+  labs(x = "Prosocial Scores", y = "Number of Participants") + 
+  facet_wrap(~report, scales = "free") + 
+  theme_classic() #negative skew / left skew
+ggsave("w5 SDQ prosocial hist.jpg")
+```
+
+### Parental SDQ ASD diagnoses comparisons
+
+``` {r}
+#create subscale scores
 data_w5_desc_p <- data_w5_desc_p %>% 
   mutate(emotional = Q3 + Q8 + Q13 + Q16 + Q24, 
          conduct = Q5 + Q7 + Q12 + Q18 + Q22, 
@@ -711,56 +801,7 @@ data_w5_desc_p <- data_w5_desc_p %>%
          peer = Q6 + Q11 + Q14 + Q19 + Q23, 
          prosocial = Q1 + Q4 + Q9 + Q17 + Q20, 
          difficulty = emotional + conduct + hyperactivity + peer)
-```
 
-``` {r}
-#table
-data_w5_desc_p %>% summarise(mean_diff = mean(difficulty), 
-                             sd_diff = sd(difficulty), 
-                             min_diff = min(difficulty), 
-                             max_diff = max(difficulty), 
-                             mean_pro = mean(prosocial), 
-                             sd_pro = sd(prosocial), 
-                             min_pro = min(prosocial), 
-                             max_pro = max(prosocial))
-
-#graph
-#difficulty
-data_w5_desc_p %>% ggplot(aes(x = difficulty)) + geom_histogram() #slight positive skew / right skew
-
-#prosocial
-data_w5_desc_p %>% ggplot(aes(x = prosocial)) + geom_histogram() #negative skew / left skew
-```
-
-**SDQ by sex**
-
-``` {r}
-#table
-data_w5_desc_p %>% 
-  group_by(sex_final) %>% summarise(n = n(),
-                                    mean_diff = mean(difficulty), 
-                                    sd_diff = sd(difficulty), 
-                                    min_diff = min(difficulty), 
-                                    max_diff = max(difficulty), 
-                                    mean_pro = mean(prosocial), 
-                                    sd_pro = sd(prosocial), 
-                                    min_pro = min(prosocial), 
-                                    max_pro = max(prosocial))
-
-#graph
-#difficulty
-data_w5_desc_p %>% ggplot(aes(x = difficulty, fill = sex_final)) + geom_histogram() + facet_wrap(~sex_final, scales = "free") #slight positive skew / right skew
-
-data_w5_desc_p %>% ggplot(aes(x = sex_final, y = difficulty, fill = sex_final)) + geom_jitter(size = .3, shape = 4) + geom_violin(alpha = .7) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5) + labs(x = "Sex", y = "Total Difficulty Scores") + theme_classic()
-ggsave("w5 parent SDQ difficulty split by sex.jpg")
-
-#prosocial
-data_w5_desc_p %>% ggplot(aes(x = prosocial, fill = sex_final)) + geom_histogram() + facet_wrap(~sex_final, scales = "free") #negative skew / left skew
-```
-
-**SDQ by ASD**
-
-``` {r}
 #table
 data_w5_desc_p %>% 
   group_by(ASD_final) %>% summarise(n = n(),
@@ -773,122 +814,45 @@ data_w5_desc_p %>%
                                     min_pro = min(prosocial), 
                                     max_pro = max(prosocial))
 
+#ASD vs non-ASD differences in parental SDQ scores
+t.test(data_w5_desc_p %>% filter(ASD_final == "ASD") %>% pull(difficulty), data_w5_desc_p %>% filter(ASD_final == "Non-ASD") %>% pull(difficulty), paired = F) %>% tidy()
+cohensD(data_w5_desc_p %>% filter(ASD_final == "ASD") %>% pull(difficulty), data_w5_desc_p %>% filter(ASD_final == "Non-ASD") %>% pull(difficulty), method = "unequal")
+
+#t(256.58) = 18.15, p<.001, [5.14, 6.39], d = 1.34 (very strong effect)
+
+#ASD vs non-ASD differences in parental SDQ prosocial
+t.test(data_w5_desc_p %>% filter(ASD_final == "ASD") %>% pull(prosocial), data_w5_desc_p %>% filter(ASD_final == "Non-ASD") %>% pull(prosocial), paired = F) %>% tidy()
+cohensD(data_w5_desc_p %>% filter(ASD_final == "ASD") %>% pull(prosocial), data_w5_desc_p %>% filter(ASD_final == "Non-ASD") %>% pull(prosocial), method = "unequal")
+
+#t(254.40) = -12.01, p<.001, [-2.02, -1.45], d = .92 (strong effect)
+
 #graph
 #difficulty
-data_w5_desc_p %>% ggplot(aes(x = difficulty, fill = ASD_final)) + geom_histogram() + facet_wrap(~ASD_final, scales = "free") #slight positive skew / right skew for non-ASD. ASD group normal distribution
-
-data_w5_desc_p %>% ggplot(aes(x = ASD_final, y = difficulty, fill = ASD_final)) + geom_jitter(size = .3, shape = 4) + geom_violin(alpha = .7) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5) + labs(x = "ASD Diagnosis", y = "Total Difficulty Scores") + theme_classic()
+data_w5_desc_p %>% ggplot(aes(x = difficulty)) + 
+  geom_histogram(binwidth = 1) + 
+  facet_wrap(~ASD_final, scales = "free") + 
+  labs(x = "Total Difficulty Scores", y = "Number of Participants") + 
+  theme_classic() #slight positive skew / right skew for non-ASD. ASD group normal distribution
 ggsave("w5 parent SDQ difficulty split by ASD.jpg")
 
 #prosocial
-data_w5_desc_p %>% ggplot(aes(x = prosocial, fill = ASD_final)) + geom_histogram() + facet_wrap(~ASD_final, scales = "free") #negative skew / left skew
+data_w5_desc_p %>% ggplot(aes(x = prosocial)) + 
+  geom_histogram(binwidth = 1) + 
+  facet_wrap(~ASD_final, scales = "free") + 
+  labs(x = "Prosocial Subscale Scores", y = "Number of Participants") + 
+  theme_classic() #negative / left skew, but stronger for non-ASD, scores on average lower for ASD
+ggsave("w5 parent SDQ prosocial split by ASD.jpg")
 ```
 
-**SDQ by ASD and Sex**
-
 ``` {r}
-#table
-data_w5_desc_p %>% 
-  group_by(ASD_final, sex_final) %>% summarise(n = n(),
-                                    mean_diff = mean(difficulty), 
-                                    sd_diff = sd(difficulty), 
-                                    min_diff = min(difficulty), 
-                                    max_diff = max(difficulty), 
-                                    mean_pro = mean(prosocial), 
-                                    sd_pro = sd(prosocial), 
-                                    min_pro = min(prosocial), 
-                                    max_pro = max(prosocial))
-
-#graph
-#difficulty
-data_w5_desc_p %>% ggplot(aes(x = difficulty, fill = ASD_final)) + geom_density(alpha = .7) + facet_wrap(~sex_final, scales = "free") #slight positive skew / right skew for non-ASD. ASD group normal distribution
-
-data_w5_desc_p %>% ggplot(aes(x = ASD_final, y = difficulty, fill = sex_final)) + geom_violin(alpha = .7, width = .9) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5, position = position_dodge(width = .9)) + labs(x = "ASD Diagnosis", y = "Total Difficulty Scores", fill = "Sex") + theme_classic()
-ggsave("w5 parent SDQ difficulty split by ASD and sex.jpg")
-
-#prosocial
-data_w5_desc_p %>% ggplot(aes(x = prosocial, fill = ASD_final)) + geom_density(alpha = .7) + facet_wrap(~sex_final, scales = "free") #negative skew / left skew
+#alternative graph
+data_w5_desc_p %>% ggplot(aes(x = ASD_final, y = difficulty, fill = ASD_final)) + geom_jitter(size = .3, shape = 4) + geom_violin(alpha = .7) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5) + labs(x = "ASD Diagnosis", y = "Total Difficulty Scores") + theme_classic()
 ```
 
-### Teacher report
-
-**Overall ASD**
+### Teacher SDQ ASD diagnoses comparisons
 
 ``` {r}
-#create wide format
-data_w5_desc_t <- data_w5_final %>%
-  filter(report == "teacher") %>%
-  pivot_wider(names_from = item, values_from = c(score))
-```
-
-Report ASD diagnoses
-
-``` {r}
-#table
-data_w5_desc_t %>% count(ASD_final) %>% mutate(prop = n/sum(n))
-
-#graph
-#count data, no need for graph
-```
-
-**Sex and ASD**
-
-``` {r}
-#Sex only
-#table
-data_w5_desc_t %>% count(sex_final) %>% mutate(prop = n/sum(n))
-
-#Sex and ASD
-#table
-data_w5_desc_t %>% count(sex_final, ASD_final) %>% mutate(prop = n/sum(n))
-
-#ASD
-data_w5_desc_t %>% filter(ASD_final == "ASD") %>% count(sex_final) %>% mutate(prop = n/sum(n))
-
-#non-ASD
-data_w5_desc_t %>% filter(ASD_final == "Non-ASD") %>% count(sex_final) %>% mutate(prop = n/sum(n))
-
-#graph
-data_w5_desc_t %>% count(sex_final, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ASD_final, y = n, fill = sex_final)) + geom_bar(stat = "identity", position = "dodge")
-```
-
-**Ethnicity and ASD**
-
-``` {r}
-#Ethnicity only
-#table
-data_w5_desc_t %>% count(ethnicity) %>% mutate(prop = n/sum(n))
-
-#Ethnicity and ASD
-#table
-data_w5_desc_t %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n))
-
-#ASD
-data_w5_desc_t %>% filter(ASD_final == "ASD") %>% count(ethnicity) %>% mutate(prop = n/sum(n))
-
-#non-ASD
-data_w5_desc_t %>% filter(ASD_final == "Non-ASD") %>% count(ethnicity) %>% mutate(prop = n/sum(n))
-
-#graph
-data_w5_desc_t %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ASD_final, y = n, fill = ethnicity)) + geom_bar(stat = "identity", position = "dodge")
-
-data_w5_desc_t %>% filter(ASD_final == "ASD") %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ethnicity, y = n, fill = ethnicity)) + geom_bar(stat = "identity", position = "dodge")
-
-data_w5_desc_t %>% filter(ASD_final == "Non-ASD") %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ethnicity, y = n, fill = ethnicity)) + geom_bar(stat = "identity", position = "dodge")
-```
-
-**Overall SDQ**
-
-We need to first calculate subscale scores, and total difficulty score.
-
-The items load onto the factors as follows
-Emotional problems scale: Items 3, 8, 13, 16, 24
-Conduct problems scale: Items 5, 7, 12, 18, 22
-Hyperactivity scale: Items 2, 10, 15, 21, 25
-Peer problems scale: Items 6, 11, 14, 19, 23
-Prosocial scale: Items 1, 4, 9, 17, 20
-
-``` {r}
+#create subscale scores
 data_w5_desc_t <- data_w5_desc_t %>% 
   mutate(emotional = Q3 + Q8 + Q13 + Q16 + Q24, 
          conduct = Q5 + Q7 + Q12 + Q18 + Q22, 
@@ -896,56 +860,7 @@ data_w5_desc_t <- data_w5_desc_t %>%
          peer = Q6 + Q11 + Q14 + Q19 + Q23, 
          prosocial = Q1 + Q4 + Q9 + Q17 + Q20, 
          difficulty = emotional + conduct + hyperactivity + peer)
-```
 
-``` {r}
-#table
-data_w5_desc_t %>% summarise(mean_diff = mean(difficulty), 
-                             sd_diff = sd(difficulty), 
-                             min_diff = min(difficulty), 
-                             max_diff = max(difficulty), 
-                             mean_pro = mean(prosocial), 
-                             sd_pro = sd(prosocial), 
-                             min_pro = min(prosocial), 
-                             max_pro = max(prosocial))
-
-#graph
-#difficulty
-data_w5_desc_t %>% ggplot(aes(x = difficulty)) + geom_histogram() #slight positive skew / right skew
-
-#prosocial
-data_w5_desc_t %>% ggplot(aes(x = prosocial)) + geom_histogram() #negative skew / left skew
-```
-
-**SDQ by sex**
-
-``` {r}
-#table
-data_w5_desc_t %>% 
-  group_by(sex_final) %>% summarise(n = n(),
-                                    mean_diff = mean(difficulty), 
-                                    sd_diff = sd(difficulty), 
-                                    min_diff = min(difficulty), 
-                                    max_diff = max(difficulty), 
-                                    mean_pro = mean(prosocial), 
-                                    sd_pro = sd(prosocial), 
-                                    min_pro = min(prosocial), 
-                                    max_pro = max(prosocial))
-
-#graph
-#difficulty
-data_w5_desc_t %>% ggplot(aes(x = difficulty, fill = sex_final)) + geom_histogram() + facet_wrap(~sex_final, scales = "free") #slight positive skew / right skew
-
-data_w5_desc_t %>% ggplot(aes(x = sex_final, y = difficulty, fill = sex_final)) + geom_jitter(size = .3, shape = 4) + geom_violin(alpha = .7) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5) + labs(x = "Sex", y = "Total Difficulty Scores") + theme_classic()
-ggsave("w5 teacher SDQ difficulty split by sex.jpg")
-
-#prosocial
-data_w5_desc_t %>% ggplot(aes(x = prosocial, fill = sex_final)) + geom_histogram() + facet_wrap(~sex_final, scales = "free") #negative skew / left skew
-```
-
-**SDQ by ASD**
-
-``` {r}
 #table
 data_w5_desc_t %>% 
   group_by(ASD_final) %>% summarise(n = n(),
@@ -958,59 +873,64 @@ data_w5_desc_t %>%
                                     min_pro = min(prosocial), 
                                     max_pro = max(prosocial))
 
+#ASD vs non-ASD differences in teacher SDQ scores
+t.test(data_w5_desc_t %>% filter(ASD_final == "ASD") %>% pull(difficulty), data_w5_desc_t %>% filter(ASD_final == "Non-ASD") %>% pull(difficulty), paired = F) %>% tidy()
+cohensD(data_w5_desc_t %>% filter(ASD_final == "ASD") %>% pull(difficulty), data_w5_desc_t %>% filter(ASD_final == "Non-ASD") %>% pull(difficulty), method = "unequal")
+
+#t(256.96) = 11.99, p<.001, [2.41, 3.35], d = .88 (strong effect)
+
+#ASD vs non-ASD differences in teacher SDQ prosocial
+t.test(data_w5_desc_t %>% filter(ASD_final == "ASD") %>% pull(prosocial), data_w5_desc_t %>% filter(ASD_final == "Non-ASD") %>% pull(prosocial), paired = F) %>% tidy()
+cohensD(data_w5_desc_t %>% filter(ASD_final == "ASD") %>% pull(prosocial), data_w5_desc_t %>% filter(ASD_final == "Non-ASD") %>% pull(prosocial), method = "unequal")
+
+#t(259.08) = -12.01, p<.001, [-2.28, -1.64], d = .86 (strong effect)
+
 #graph
 #difficulty
-data_w5_desc_t %>% ggplot(aes(x = difficulty, fill = ASD_final)) + geom_histogram() + facet_wrap(~ASD_final, scales = "free") #slight positive skew / right skew for non-ASD. ASD group normal distribution
-
-data_w5_desc_t %>% ggplot(aes(x = ASD_final, y = difficulty, fill = ASD_final)) + geom_jitter(size = .3, shape = 4) + geom_violin(alpha = .7) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5) + labs(x = "ASD Diagnosis", y = "Total Difficulty Scores") + theme_classic()
+data_w5_desc_t %>% ggplot(aes(x = difficulty)) + 
+  geom_histogram(binwidth = 1) + 
+  facet_wrap(~ASD_final, scales = "free") + 
+  labs(x = "Total Difficulty Scores", y = "Number of Participants") + 
+  theme_classic() #slight positive skew / right skew for non-ASD. ASD group normal distribution
 ggsave("w5 teacher SDQ difficulty split by ASD.jpg")
 
 #prosocial
-data_w5_desc_t %>% ggplot(aes(x = prosocial, fill = ASD_final)) + geom_histogram() + facet_wrap(~ASD_final, scales = "free") #negative skew / left skew
-```
-
-**SDQ by ASD and Sex**
-
-``` {r}
-#table
-data_w5_desc_t %>% 
-  group_by(ASD_final, sex_final) %>% summarise(n = n(),
-                                    mean_diff = mean(difficulty), 
-                                    sd_diff = sd(difficulty), 
-                                    min_diff = min(difficulty), 
-                                    max_diff = max(difficulty), 
-                                    mean_pro = mean(prosocial), 
-                                    sd_pro = sd(prosocial), 
-                                    min_pro = min(prosocial), 
-                                    max_pro = max(prosocial))
-
-#graph
-#difficulty
-data_w5_desc_t %>% ggplot(aes(x = difficulty, fill = ASD_final)) + geom_density(alpha = .7) + facet_wrap(~sex_final, scales = "free") #slight positive skew / right skew for non-ASD. ASD group normal distribution
-
-data_w5_desc_t %>% ggplot(aes(x = ASD_final, y = difficulty, fill = sex_final)) + geom_violin(alpha = .7, width = .9) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5, position = position_dodge(width = .9)) + labs(x = "ASD Diagnosis", y = "Total Difficulty Scores", fill = "Sex") + theme_classic()
-ggsave("w5 teacher SDQ difficulty split by ASD and sex.jpg")
-
-#prosocial
-data_w5_desc_t %>% ggplot(aes(x = prosocial, fill = ASD_final)) + geom_density(alpha = .7) + facet_wrap(~sex_final, scales = "free") #negative skew / left skew
+data_w5_desc_t %>% ggplot(aes(x = prosocial)) + 
+  geom_histogram(binwidth = 1) + 
+  facet_wrap(~ASD_final, scales = "free") + 
+  labs(x = "Prosocial Subscale Scores", y = "Number of Participants") + 
+  theme_classic() # #negative / left skew, but stronger for non-ASD, scores on average lower for ASD
+ggsave("w5 teacher SDQ prosocial split by ASD.jpg")
 ```
 
 ``` {r}
+#alternative graph
+data_w5_desc_t %>% ggplot(aes(x = ASD_final, y = difficulty, fill = ASD_final)) + geom_jitter(size = .3, shape = 4) + geom_violin(alpha = .7) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5) + labs(x = "ASD Diagnosis", y = "Total Difficulty Scores") + theme_classic()
+```
+
+``` {r}
+#clean up
 rm(data_w5_desc_p)
 rm(data_w5_desc_t)
+rm(results)
+rm(eff_size)
 ```
 
 ## Wave 7
 
-### Parent report
-
-**Overall ASD**
+### ASD
 
 ``` {r}
 #create wide format
 data_w7_desc_p <- data_w7_final %>%
   filter(report == "parent") %>%
   pivot_wider(names_from = item, values_from = c(score))
+
+data_w7_desc_cm <- data_w7_final %>%
+  filter(report == "self") %>%
+  pivot_wider(names_from = item, values_from = c(score))
+
+#using either dataset is okay since each participant has both parent and self-reported scores
 ```
 
 Report ASD diagnoses
@@ -1023,7 +943,7 @@ data_w7_desc_p %>% count(ASD_final) %>% mutate(prop = n/sum(n))
 #count data, no need for graph
 ```
 
-**Sex and ASD**
+### Sex and ASD
 
 ``` {r}
 #Sex only
@@ -1031,20 +951,42 @@ data_w7_desc_p %>% count(ASD_final) %>% mutate(prop = n/sum(n))
 data_w7_desc_p %>% count(sex_final) %>% mutate(prop = n/sum(n))
 
 #Sex and ASD
-#table
-data_w7_desc_p %>% count(sex_final, ASD_final) %>% mutate(prop = n/sum(n))
-
-#ASD
+#ASD group
 data_w7_desc_p %>% filter(ASD_final == "ASD") %>% count(sex_final) %>% mutate(prop = n/sum(n))
 
-#non-ASD
+#non-ASD group
 data_w7_desc_p %>% filter(ASD_final == "Non-ASD") %>% count(sex_final) %>% mutate(prop = n/sum(n))
 
 #graph
-data_w7_desc_p %>% count(sex_final, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ASD_final, y = n, fill = sex_final)) + geom_bar(stat = "identity", position = "dodge")
+data_w7_desc_p %>% 
+  count(sex_final, ASD_final) %>% 
+  mutate(prop = n/sum(n)) %>%
+  ggplot(aes(x = ASD_final, y = n, fill = sex_final)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "ASD Diagnosis", y = "Number of Participants", fill = "Sex") + 
+  theme_classic()
+ggsave("w7 sex and ASD.jpg")
 ```
 
-**Ethnicity and ASD**
+### Sex and ASD chi-squared
+
+``` {r}
+results <- chisq.test(x = data_w7_desc_p %>% pull(sex_final), # 1st grouping variable
+                      y = data_w7_desc_p %>% pull(ASD_final), # 2nd grouping variable
+                      correct = T) %>% # df=1, continuity correction
+  tidy()
+
+results
+#chi(1) = 62.57, p<.001
+
+eff_size <- cramersV(x = data_w7_desc_p %>% pull(sex_final), 
+                     y = data_w7_desc_p %>% pull(ASD_final), 
+                     correct = T)
+eff_size
+#Phi φ = .10
+```
+
+### Ethnicity and ASD
 
 ``` {r}
 #Ethnicity only
@@ -1052,24 +994,16 @@ data_w7_desc_p %>% count(sex_final, ASD_final) %>% mutate(prop = n/sum(n)) %>% g
 data_w7_desc_p %>% count(ethnicity) %>% mutate(prop = n/sum(n))
 
 #Ethnicity and ASD
-#table
-data_w7_desc_p %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n))
-
-#ASD
+#ASD group
 data_w7_desc_p %>% filter(ASD_final == "ASD") %>% count(ethnicity) %>% mutate(prop = n/sum(n))
 
-#non-ASD
+#non-ASD group
 data_w7_desc_p %>% filter(ASD_final == "Non-ASD") %>% count(ethnicity) %>% mutate(prop = n/sum(n))
 
-#graph
-data_w7_desc_p %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ASD_final, y = n, fill = ethnicity)) + geom_bar(stat = "identity", position = "dodge")
-
-data_w7_desc_p %>% filter(ASD_final == "ASD") %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ethnicity, y = n, fill = ethnicity)) + geom_bar(stat = "identity", position = "dodge")
-
-data_w7_desc_p %>% filter(ASD_final == "Non-ASD") %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ethnicity, y = n, fill = ethnicity)) + geom_bar(stat = "identity", position = "dodge")
+#no graph and no chi squared analyses due to predominant white population. Report proportions.
 ```
 
-**Overall SDQ**
+### Overall SDQ (Parental vs CM Scores)
 
 We need to first calculate subscale scores, and total difficulty score.
 
@@ -1081,6 +1015,56 @@ Peer problems scale: Items 6, 11, 14, 19, 23
 Prosocial scale: Items 1, 4, 9, 17, 20
 
 ``` {r}
+#create wide format
+data_w7_final <- data_w7_final %>%
+  pivot_wider(names_from = item, values_from = c(score))
+
+data_w7_final <- data_w7_final %>% 
+  mutate(emotional = Q3 + Q8 + Q13 + Q16 + Q24, 
+         conduct = Q5 + Q7 + Q12 + Q18 + Q22, 
+         hyperactivity = Q2 + Q10 + Q15 + Q21 + Q25, 
+         peer = Q6 + Q11 + Q14 + Q19 + Q23, 
+         prosocial = Q1 + Q4 + Q9 + Q17 + Q20, 
+         difficulty = emotional + conduct + hyperactivity + peer)
+```
+
+``` {r}
+#table
+data_w7_final %>% 
+  group_by(report) %>% 
+  summarise(mean_diff = mean(difficulty), 
+                             sd_diff = sd(difficulty), 
+                             min_diff = min(difficulty), 
+                             max_diff = max(difficulty), 
+                             mean_pro = mean(prosocial), 
+                             sd_pro = sd(prosocial), 
+                             min_pro = min(prosocial), 
+                             max_pro = max(prosocial))
+
+#graph
+#difficulty
+data_w7_final %>% 
+  ggplot(aes(x = difficulty)) + 
+  geom_histogram(binwidth = 1) +
+  labs(x = "Total Difficulty Scores", y = "Number of Participants") + 
+  facet_wrap(~report, scales = "free") + 
+  theme_classic() #normal distribution with slight positive skew / right skew
+ggsave("w7 SDQ difficulties hist.jpg")
+
+#prosocial
+data_w7_final %>% 
+  ggplot(aes(x = prosocial)) + 
+  geom_histogram(binwidth = 1) +
+  labs(x = "Prosocial Scores", y = "Number of Participants") + 
+  facet_wrap(~report, scales = "free") + 
+  theme_classic() #negative skew / left skew
+ggsave("w7s SDQ prosocial hist.jpg")
+```
+
+### Parental SDQ ASD diagnoses comparisons
+
+``` {r}
+#create subscale scores
 data_w7_desc_p <- data_w7_desc_p %>% 
   mutate(emotional = Q3 + Q8 + Q13 + Q16 + Q24, 
          conduct = Q5 + Q7 + Q12 + Q18 + Q22, 
@@ -1088,56 +1072,7 @@ data_w7_desc_p <- data_w7_desc_p %>%
          peer = Q6 + Q11 + Q14 + Q19 + Q23, 
          prosocial = Q1 + Q4 + Q9 + Q17 + Q20, 
          difficulty = emotional + conduct + hyperactivity + peer)
-```
 
-``` {r}
-#table
-data_w7_desc_p %>% summarise(mean_diff = mean(difficulty), 
-                             sd_diff = sd(difficulty), 
-                             min_diff = min(difficulty), 
-                             max_diff = max(difficulty), 
-                             mean_pro = mean(prosocial), 
-                             sd_pro = sd(prosocial), 
-                             min_pro = min(prosocial), 
-                             max_pro = max(prosocial))
-
-#graph
-#difficulty
-data_w7_desc_p %>% ggplot(aes(x = difficulty)) + geom_histogram() #slight positive skew / right skew
-
-#prosocial
-data_w7_desc_p %>% ggplot(aes(x = prosocial)) + geom_histogram() #negative skew / left skew
-```
-
-**SDQ by sex**
-
-``` {r}
-#table
-data_w7_desc_p %>% 
-  group_by(sex_final) %>% summarise(n = n(),
-                                    mean_diff = mean(difficulty), 
-                                    sd_diff = sd(difficulty), 
-                                    min_diff = min(difficulty), 
-                                    max_diff = max(difficulty), 
-                                    mean_pro = mean(prosocial), 
-                                    sd_pro = sd(prosocial), 
-                                    min_pro = min(prosocial), 
-                                    max_pro = max(prosocial))
-
-#graph
-#difficulty
-data_w7_desc_p %>% ggplot(aes(x = difficulty, fill = sex_final)) + geom_histogram() + facet_wrap(~sex_final, scales = "free") #slight positive skew / right skew
-
-data_w7_desc_p %>% ggplot(aes(x = sex_final, y = difficulty, fill = sex_final)) + geom_jitter(size = .3, shape = 4) + geom_violin(alpha = .7) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5) + labs(x = "Sex", y = "Total Difficulty Scores") + theme_classic()
-ggsave("w7 parent SDQ difficulty split by sex.jpg")
-
-#prosocial
-data_w7_desc_p %>% ggplot(aes(x = prosocial, fill = sex_final)) + geom_histogram() + facet_wrap(~sex_final, scales = "free") #negative skew / left skew
-```
-
-**SDQ by ASD**
-
-``` {r}
 #table
 data_w7_desc_p %>% 
   group_by(ASD_final) %>% summarise(n = n(),
@@ -1150,122 +1085,45 @@ data_w7_desc_p %>%
                                     min_pro = min(prosocial), 
                                     max_pro = max(prosocial))
 
+#ASD vs non-ASD differences in parental SDQ scores
+t.test(data_w7_desc_p %>% filter(ASD_final == "ASD") %>% pull(difficulty), data_w7_desc_p %>% filter(ASD_final == "Non-ASD") %>% pull(difficulty), paired = F) %>% tidy()
+cohensD(data_w7_desc_p %>% filter(ASD_final == "ASD") %>% pull(difficulty), data_w7_desc_p %>% filter(ASD_final == "Non-ASD") %>% pull(difficulty), method = "unequal")
+
+#t(240.96) = 13.63, p<.001, [3.80, 5.08], d = 1.03 (very strong effect)
+
+#ASD vs non-ASD differences in parental SDQ prosocial
+t.test(data_w7_desc_p %>% filter(ASD_final == "ASD") %>% pull(prosocial), data_w7_desc_p %>% filter(ASD_final == "Non-ASD") %>% pull(prosocial), paired = F) %>% tidy()
+cohensD(data_w7_desc_p %>% filter(ASD_final == "ASD") %>% pull(prosocial), data_w7_desc_p %>% filter(ASD_final == "Non-ASD") %>% pull(prosocial), method = "unequal")
+
+#t(240.79) = -11.42, p<.001, [-2.01, -1.42], d = .86 (strong effect)
+
 #graph
 #difficulty
-data_w7_desc_p %>% ggplot(aes(x = difficulty, fill = ASD_final)) + geom_histogram() + facet_wrap(~ASD_final, scales = "free") #slight positive skew / right skew for non-ASD. ASD group normal distribution
-
-data_w7_desc_p %>% ggplot(aes(x = ASD_final, y = difficulty, fill = ASD_final)) + geom_jitter(size = .3, shape = 4) + geom_violin(alpha = .7) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5) + labs(x = "ASD Diagnosis", y = "Total Difficulty Scores") + theme_classic()
+data_w7_desc_p %>% ggplot(aes(x = difficulty)) + 
+  geom_histogram(binwidth = 1) + 
+  facet_wrap(~ASD_final, scales = "free") + 
+  labs(x = "Total Difficulty Scores", y = "Number of Participants") + 
+  theme_classic() #slight positive skew / right skew for non-ASD. ASD group normal distribution
 ggsave("w7 parent SDQ difficulty split by ASD.jpg")
 
 #prosocial
-data_w7_desc_p %>% ggplot(aes(x = prosocial, fill = ASD_final)) + geom_histogram() + facet_wrap(~ASD_final, scales = "free") #negative skew / left skew
+data_w7_desc_p %>% ggplot(aes(x = prosocial)) + 
+  geom_histogram(binwidth = 1) + 
+  facet_wrap(~ASD_final, scales = "free") + 
+  labs(x = "Prosocial Subscale Scores", y = "Number of Participants") + 
+  theme_classic() #negative / left skew, but stronger for non-ASD, scores on average lower for ASD
+ggsave("w7 parent SDQ prosocial split by ASD.jpg")
 ```
 
-**SDQ by ASD and Sex**
-
 ``` {r}
-#table
-data_w7_desc_p %>% 
-  group_by(ASD_final, sex_final) %>% summarise(n = n(),
-                                    mean_diff = mean(difficulty), 
-                                    sd_diff = sd(difficulty), 
-                                    min_diff = min(difficulty), 
-                                    max_diff = max(difficulty), 
-                                    mean_pro = mean(prosocial), 
-                                    sd_pro = sd(prosocial), 
-                                    min_pro = min(prosocial), 
-                                    max_pro = max(prosocial))
-
-#graph
-#difficulty
-data_w7_desc_p %>% ggplot(aes(x = difficulty, fill = ASD_final)) + geom_density(alpha = .7) + facet_wrap(~sex_final, scales = "free") #slight positive skew / right skew for non-ASD. ASD group normal distribution
-
-data_w7_desc_p %>% ggplot(aes(x = ASD_final, y = difficulty, fill = sex_final)) + geom_violin(alpha = .7, width = .9) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5, position = position_dodge(width = .9)) + labs(x = "ASD Diagnosis", y = "Total Difficulty Scores", fill = "Sex") + theme_classic()
-ggsave("w7 parent SDQ difficulty split by ASD and sex.jpg")
-
-#prosocial
-data_w7_desc_p %>% ggplot(aes(x = prosocial, fill = ASD_final)) + geom_density(alpha = .7) + facet_wrap(~sex_final, scales = "free") #negative skew / left skew
+#alternative graph
+data_w7_desc_p %>% ggplot(aes(x = ASD_final, y = difficulty, fill = ASD_final)) + geom_jitter(size = .3, shape = 4) + geom_violin(alpha = .7) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5) + labs(x = "ASD Diagnosis", y = "Total Difficulty Scores") + theme_classic()
 ```
 
-### Self-report
-
-**Overall ASD**
+### Self-Reported SDQ ASD diagnoses comparisons
 
 ``` {r}
-#create wide format
-data_w7_desc_cm <- data_w7_final %>%
-  filter(report == "self") %>%
-  pivot_wider(names_from = item, values_from = c(score))
-```
-
-Report ASD diagnoses
-
-``` {r}
-#table
-data_w7_desc_cm %>% count(ASD_final) %>% mutate(prop = n/sum(n))
-
-#graph
-#count data, no need for graph
-```
-
-**Sex and ASD**
-
-``` {r}
-#Sex only
-#table
-data_w7_desc_cm %>% count(sex_final) %>% mutate(prop = n/sum(n))
-
-#Sex and ASD
-#table
-data_w7_desc_cm %>% count(sex_final, ASD_final) %>% mutate(prop = n/sum(n))
-
-#ASD
-data_w7_desc_cm %>% filter(ASD_final == "ASD") %>% count(sex_final) %>% mutate(prop = n/sum(n))
-
-#non-ASD
-data_w7_desc_cm %>% filter(ASD_final == "Non-ASD") %>% count(sex_final) %>% mutate(prop = n/sum(n))
-
-#graph
-data_w7_desc_cm %>% count(sex_final, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ASD_final, y = n, fill = sex_final)) + geom_bar(stat = "identity", position = "dodge")
-```
-
-**Ethnicity and ASD**
-
-``` {r}
-#Ethnicity only
-#table
-data_w7_desc_cm %>% count(ethnicity) %>% mutate(prop = n/sum(n))
-
-#Ethnicity and ASD
-#table
-data_w7_desc_cm %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n))
-
-#ASD
-data_w7_desc_cm %>% filter(ASD_final == "ASD") %>% count(ethnicity) %>% mutate(prop = n/sum(n))
-
-#non-ASD
-data_w7_desc_cm %>% filter(ASD_final == "Non-ASD") %>% count(ethnicity) %>% mutate(prop = n/sum(n))
-
-#graph
-data_w7_desc_cm %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ASD_final, y = n, fill = ethnicity)) + geom_bar(stat = "identity", position = "dodge")
-
-data_w7_desc_cm %>% filter(ASD_final == "ASD") %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ethnicity, y = n, fill = ethnicity)) + geom_bar(stat = "identity", position = "dodge")
-
-data_w7_desc_cm %>% filter(ASD_final == "Non-ASD") %>% count(ethnicity, ASD_final) %>% mutate(prop = n/sum(n)) %>% ggplot(aes(x = ethnicity, y = n, fill = ethnicity)) + geom_bar(stat = "identity", position = "dodge")
-```
-
-**Overall SDQ**
-
-We need to first calculate subscale scores, and total difficulty score.
-
-The items load onto the factors as follows
-Emotional problems scale: Items 3, 8, 13, 16, 24
-Conduct problems scale: Items 5, 7, 12, 18, 22
-Hyperactivity scale: Items 2, 10, 15, 21, 25
-Peer problems scale: Items 6, 11, 14, 19, 23
-Prosocial scale: Items 1, 4, 9, 17, 20
-
-``` {r}
+#create subscale scores
 data_w7_desc_cm <- data_w7_desc_cm %>% 
   mutate(emotional = Q3 + Q8 + Q13 + Q16 + Q24, 
          conduct = Q5 + Q7 + Q12 + Q18 + Q22, 
@@ -1273,56 +1131,7 @@ data_w7_desc_cm <- data_w7_desc_cm %>%
          peer = Q6 + Q11 + Q14 + Q19 + Q23, 
          prosocial = Q1 + Q4 + Q9 + Q17 + Q20, 
          difficulty = emotional + conduct + hyperactivity + peer)
-```
 
-``` {r}
-#table
-data_w7_desc_cm %>% summarise(mean_diff = mean(difficulty), 
-                             sd_diff = sd(difficulty), 
-                             min_diff = min(difficulty), 
-                             max_diff = max(difficulty), 
-                             mean_pro = mean(prosocial), 
-                             sd_pro = sd(prosocial), 
-                             min_pro = min(prosocial), 
-                             max_pro = max(prosocial))
-
-#graph
-#difficulty
-data_w7_desc_cm %>% ggplot(aes(x = difficulty)) + geom_histogram() #slight positive skew / right skew
-
-#prosocial
-data_w7_desc_cm %>% ggplot(aes(x = prosocial)) + geom_histogram() #negative skew / left skew
-```
-
-**SDQ by sex**
-
-``` {r}
-#table
-data_w7_desc_cm %>% 
-  group_by(sex_final) %>% summarise(n = n(),
-                                    mean_diff = mean(difficulty), 
-                                    sd_diff = sd(difficulty), 
-                                    min_diff = min(difficulty), 
-                                    max_diff = max(difficulty), 
-                                    mean_pro = mean(prosocial), 
-                                    sd_pro = sd(prosocial), 
-                                    min_pro = min(prosocial), 
-                                    max_pro = max(prosocial))
-
-#graph
-#difficulty
-data_w7_desc_cm %>% ggplot(aes(x = difficulty, fill = sex_final)) + geom_histogram() + facet_wrap(~sex_final, scales = "free") #slight positive skew / right skew
-
-data_w7_desc_cm %>% ggplot(aes(x = sex_final, y = difficulty, fill = sex_final)) + geom_jitter(size = .3, shape = 4) + geom_violin(alpha = .7) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5) + labs(x = "Sex", y = "Total Difficulty Scores") + theme_classic()
-ggsave("w7 self SDQ difficulty split by sex.jpg")
-
-#prosocial
-data_w7_desc_cm %>% ggplot(aes(x = prosocial, fill = sex_final)) + geom_histogram() + facet_wrap(~sex_final, scales = "free") #negative skew / left skew
-```
-
-**SDQ by ASD**
-
-``` {r}
 #table
 data_w7_desc_cm %>% 
   group_by(ASD_final) %>% summarise(n = n(),
@@ -1335,60 +1144,62 @@ data_w7_desc_cm %>%
                                     min_pro = min(prosocial), 
                                     max_pro = max(prosocial))
 
+#ASD vs non-ASD differences in teacher SDQ scores
+t.test(data_w7_desc_cm %>% filter(ASD_final == "ASD") %>% pull(difficulty), data_w7_desc_cm %>% filter(ASD_final == "Non-ASD") %>% pull(difficulty), paired = F) %>% tidy()
+cohensD(data_w7_desc_cm %>% filter(ASD_final == "ASD") %>% pull(difficulty), data_w7_desc_cm %>% filter(ASD_final == "Non-ASD") %>% pull(difficulty), method = "unequal")
+
+#t(242.79) = 6.92, p<.001, [1.71, 3.07], d = .51 (moderate effect)
+
+#ASD vs non-ASD differences in teacher SDQ prosocial
+t.test(data_w7_desc_cm %>% filter(ASD_final == "ASD") %>% pull(prosocial), data_w7_desc_cm %>% filter(ASD_final == "Non-ASD") %>% pull(prosocial), paired = F) %>% tidy()
+cohensD(data_w7_desc_cm %>% filter(ASD_final == "ASD") %>% pull(prosocial), data_w7_desc_cm %>% filter(ASD_final == "Non-ASD") %>% pull(prosocial), method = "unequal")
+
+#t(242.47) = -7.09, p<.001, [-1.30, -.73], d = .52 (moderate effect)
+
 #graph
 #difficulty
-data_w7_desc_cm %>% ggplot(aes(x = difficulty, fill = ASD_final)) + geom_histogram() + facet_wrap(~ASD_final, scales = "free") #slight positive skew / right skew for non-ASD. ASD group normal distribution
-
-data_w7_desc_cm %>% ggplot(aes(x = ASD_final, y = difficulty, fill = ASD_final)) + geom_jitter(size = .3, shape = 4) + geom_violin(alpha = .7) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5) + labs(x = "ASD Diagnosis", y = "Total Difficulty Scores") + theme_classic()
-ggsave("w7 self SDQ difficulty split by ASD.jpg")
+data_w7_desc_cm %>% ggplot(aes(x = difficulty)) + 
+  geom_histogram(binwidth = 1) + 
+  facet_wrap(~ASD_final, scales = "free") + 
+  labs(x = "Total Difficulty Scores", y = "Number of Participants") + 
+  theme_classic() #slight positive skew / right skew for non-ASD. ASD group normal distribution
+ggsave("w7 teacher SDQ difficulty split by ASD.jpg")
 
 #prosocial
-data_w7_desc_cm %>% ggplot(aes(x = prosocial, fill = ASD_final)) + geom_histogram() + facet_wrap(~ASD_final, scales = "free") #negative skew / left skew
+data_w7_desc_cm %>% ggplot(aes(x = prosocial)) + 
+  geom_histogram(binwidth = 1) + 
+  facet_wrap(~ASD_final, scales = "free") + 
+  labs(x = "Prosocial Subscale Scores", y = "Number of Participants") + 
+  theme_classic() # #negative / left skew, but stronger for non-ASD
+ggsave("w7 teacher SDQ prosocial split by ASD.jpg")
 ```
 
-**SDQ by ASD and Sex**
-
 ``` {r}
-#table
-data_w7_desc_cm %>% 
-  group_by(ASD_final, sex_final) %>% summarise(n = n(),
-                                    mean_diff = mean(difficulty), 
-                                    sd_diff = sd(difficulty), 
-                                    min_diff = min(difficulty), 
-                                    max_diff = max(difficulty), 
-                                    mean_pro = mean(prosocial), 
-                                    sd_pro = sd(prosocial), 
-                                    min_pro = min(prosocial), 
-                                    max_pro = max(prosocial))
-
-#graph
-#difficulty
-data_w7_desc_cm %>% ggplot(aes(x = difficulty, fill = ASD_final)) + geom_density(alpha = .7) + facet_wrap(~sex_final, scales = "free") #slight positive skew / right skew for non-ASD. ASD group normal distribution
-
-data_w7_desc_cm %>% ggplot(aes(x = ASD_final, y = difficulty, fill = sex_final)) + geom_violin(alpha = .7, width = .9) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5, position = position_dodge(width = .9)) + labs(x = "ASD Diagnosis", y = "Total Difficulty Scores", fill = "Sex") + theme_classic()
-ggsave("w7 self SDQ difficulty split by ASD and sex.jpg")
-
-#prosocial
-data_w7_desc_cm %>% ggplot(aes(x = prosocial, fill = ASD_final)) + geom_density(alpha = .7) + facet_wrap(~sex_final, scales = "free") #negative skew / left skew
+#alternative graph
+data_w7_desc_cm %>% ggplot(aes(x = ASD_final, y = difficulty, fill = ASD_final)) + geom_jitter(size = .3, shape = 4) + geom_violin(alpha = .7) + stat_summary(fun = mean, geom = "point", shape = 20, size = 5) + labs(x = "ASD Diagnosis", y = "Total Difficulty Scores") + theme_classic()
 ```
 
 ``` {r}
 rm(data_w7_desc_p)
 rm(data_w7_desc_cm)
+rm(results)
+rm(eff_size)
 ```
 
-## Wave 5 and 7
+## Wave 5 and 7 (cross wave comparisons??)
 
 ``` {r}
 #create wide format
-w57_w5 <- data_w5_final %>% select(MCSID, item, score, report, ASD_final, sex_final) %>% mutate(wave = "wave_5")
-w57_w7 <- data_w7_final %>% select(MCSID, item, score, report, ASD_final, sex_final) %>% mutate(wave = "wave_7")
-w57 <- bind_rows(w57_w5, w57_w7)
-rm(w57_w5)
-rm(w57_w7)
+#w57_w5 <- data_w5_final %>% select(MCSID, item, score, report, ASD_final, sex_final) %>% mutate(wave = "wave_5")
+#w57_w7 <- data_w7_final %>% select(MCSID, item, score, report, ASD_final, sex_final) %>% mutate(wave = "wave_7")
+#w57 <- bind_rows(w57_w5, w57_w7)
+#rm(w57_w5)
+#rm(w57_w7)
 
-w57 <- w57 %>%
-  pivot_wider(names_from = item, values_from = score)
+#w57 <- w57 %>%
+ # pivot_wider(names_from = item, values_from = score)
+
+#decided not to conduct any cross wave comparisons due to attrition bias
 ```
 
 # Measurement Invariance
@@ -1402,12 +1213,12 @@ Prosocial scale: Items 1, 4, 9, 17, 20
 
 ## Wave 5 (Non-ASD)
 
-Need to create "short" format
+Need to create working dataset format
 
 ```{r}
 w5_measurement_td <- data_w5_final %>%
-  filter(ASD_final == "Non-ASD") %>%
-  pivot_wider(names_from = item, values_from = score)
+  filter(ASD_final == "Non-ASD") %>% 
+  select(-emotional, -conduct, -hyperactivity, -peer, -prosocial)
 ```
 
 ### Factor structure
@@ -1420,12 +1231,34 @@ hyperactivity =~ Q2 + Q10 + Q15 + Q21 + Q25
 peer =~ Q6 + Q11 + Q14 + Q19 + Q23
 prosocial =~ Q1 + Q4 + Q9 + Q17 + Q20
 "
+```
 
-base_w5_td <- cfa(SDQ, data = w5_measurement_td, std.lv = TRUE, meanstructure = TRUE)
-summary(base_w5_td, rsquare = T, standardized = T, fit.measures = T)
+### CFA to validate 5-factor structure
 
+``` {r}
+#Parent report
+w5_measurement_td_p <- w5_measurement_td %>% 
+  filter(report == "parent")
+parent_w5_td <- cfa(SDQ, data = w5_measurement_td_p, std.lv = TRUE, meanstructure = TRUE)
+summary(parent_w5_td, rsquare = T, standardized = T, fit.measures = T)
+#cfi .854 (Poor), rmsea .053(good), srmr, .042 (good)
+
+#Teacher report
+w5_measurement_td_t <- w5_measurement_td %>% 
+  filter(report == "teacher")
+teacher_w5_td <- cfa(SDQ, data = w5_measurement_td_t, std.lv = TRUE, meanstructure = TRUE)
+summary(teacher_w5_td, rsquare = T, standardized = T, fit.measures = T)
+#cfi 0.855 (poor), rmsea 0.071(fair fit), srmr, 0.060 (good)
+
+rm(w5_measurement_td_p)
+rm(w5_measurement_td_t)
+```
+
+### Create one plot
+
+``` {r}
 #Plot
-semPaths(object = base_w5_td, #model object
+semPaths(object = parent_w5_td, #model object
          what = 'est', #est gives thicknesses and numbers, 'std' gives standardized values
          fixedStyle = 1, #other numbers gives dotted line for fixed params
          sizeMan = 4, #observed variable text size
@@ -1455,6 +1288,7 @@ semPaths(object = base_w5_td, #model object
 ```{r}
 con_inv_w5_td <- cfa(SDQ, data = w5_measurement_td, group = "report", std.lv=TRUE)
 summary(con_inv_w5_td, rsquare = T, fit.measures=TRUE, standardized=TRUE)
+#cfi 0.854 (poor), rmsea 0.062 (fair fit), srmr 0.051 (good)
 ```
 
 ### Metric Invariance
@@ -1478,27 +1312,32 @@ stri_inv_w5_td <- cfa(SDQ, data = w5_measurement_td, group = "report", group.equ
 summary(stri_inv_w5_td, rsquare = T, fit.measures=TRUE, standardized=TRUE)
 ```
 
-### Strict + Equal Factor Means
-
-```{r}
-strim_inv_w5_td <- cfa(SDQ, data = w5_measurement_td, group = "report", group.equal = c("intercepts", "loadings", "residuals", "means"), std.lv=TRUE)
-summary(strim_inv_w5_td, rsquare = T, fit.measures=TRUE, standardized=TRUE)
-```
-
 ### Strucutral Invariance 
 
 **Add latent variable variances and covariances**
 
 ```{r}
-stru_inv_w5_td <- cfa(SDQ, data = w5_measurement_td, group = "report", group.equal = c("intercepts", "loadings", "residuals", "means", "lv.variances", "lv.covariances"), std.lv=TRUE)
+stru_inv_w5_td <- cfa(SDQ, data = w5_measurement_td, group = "report", group.equal = c("intercepts", "loadings", "residuals", "lv.variances", "lv.covariances"), std.lv=TRUE)
 summary(stru_inv_w5_td, rsquare = T, fit.measures=TRUE, standardized=TRUE)
+```
+
+### Structural Invariance + Equal Factor Means
+
+```{r}
+strum_inv_w5_td <- cfa(SDQ, data = w5_measurement_td, group = "report", group.equal = c("intercepts", "loadings", "residuals",  "lv.variances", "lv.covariances", "means"), std.lv=TRUE)
+summary(strum_inv_w5_td, rsquare = T, fit.measures=TRUE, standardized=TRUE)
 ```
 
 ### Comparisons
 
 ```{r}
-comp_fit <- compareFit(base_w5_td, con_inv_w5_td, met_inv_w5_td, sca_inv_w5_td, stri_inv_w5_td, strim_inv_w5_td, stru_inv_w5_td)
+comp_fit <- compareFit(con_inv_w5_td, met_inv_w5_td, sca_inv_w5_td, stri_inv_w5_td, stru_inv_w5_td, strum_inv_w5_td)
 summary(comp_fit,  fit.measures = c("cfi", "rmsea", "srmr"))
+```
+
+``` {r}
+rm(comp_fit)
+rm(w5_measurement_td)
 ```
 
 ## Wave 5 (ASD)
@@ -1507,8 +1346,8 @@ Need to create "short" format
 
 ```{r}
 w5_measurement_asd <- data_w5_final %>%
-  filter(ASD_final == "ASD") %>%
-  pivot_wider(names_from = item, values_from = score)
+  filter(ASD_final == "ASD") %>% 
+  select(-emotional, -conduct, -hyperactivity, -peer, -prosocial)
 ```
 
 ### Factor structure
@@ -1520,10 +1359,28 @@ conduct =~ Q5 + Q7 + Q12 + Q18 + Q22
 hyperactivity =~ Q2 + Q10 + Q15 + Q21 + Q25
 peer =~ Q6 + Q11 + Q14 + Q19 + Q23
 prosocial =~ Q1 + Q4 + Q9 + Q17 + Q20
-"
+" ##same throughout all MI comparisons
+```
 
-base_w5_asd <- cfa(SDQ, data = w5_measurement_asd, std.lv = TRUE, meanstructure = TRUE)
-summary(base_w5_asd, rsquare = T, standardized = T, fit.measures = T)
+### CFA to validate 5-factor structure
+
+``` {r}
+#Parent report
+w5_measurement_asd_p <- w5_measurement_asd %>% 
+  filter(report == "parent")
+parent_w5_asd <- cfa(SDQ, data = w5_measurement_asd_p, std.lv = TRUE, meanstructure = TRUE)
+summary(parent_w5_asd, rsquare = T, standardized = T, fit.measures = T)
+#cfi .831 (Poor), rmsea .071 (fair fit), srmr, .070 (good)
+
+#Teacher report
+w5_measurement_asd_t <- w5_measurement_asd %>% 
+  filter(report == "teacher")
+teacher_w5_asd <- cfa(SDQ, data = w5_measurement_asd_t, std.lv = TRUE, meanstructure = TRUE)
+summary(teacher_w5_asd, rsquare = T, standardized = T, fit.measures = T)
+#cfi .817 (poor), rmsea .079 (fair fit), srmr, .082 (poor)
+
+rm(w5_measurement_asd_p)
+rm(w5_measurement_asd_t)
 ```
 
 ### Configural Invariance
@@ -1531,6 +1388,7 @@ summary(base_w5_asd, rsquare = T, standardized = T, fit.measures = T)
 ```{r}
 con_inv_w5_asd <- cfa(SDQ, data = w5_measurement_asd, group = "report", std.lv=TRUE)
 summary(con_inv_w5_asd, rsquare = T, fit.measures=TRUE, standardized=TRUE)
+#.824 (poor cfi), .075 (rmsea fair fit), .076 (good)
 ```
 
 ### Metric Invariance
@@ -1554,27 +1412,32 @@ stri_inv_w5_asd <- cfa(SDQ, data = w5_measurement_asd, group = "report", group.e
 summary(stri_inv_w5_asd, rsquare = T, fit.measures=TRUE, standardized=TRUE)
 ```
 
-### Strict + Equal Factor Means
-
-```{r}
-strim_inv_w5_asd <- cfa(SDQ, data = w5_measurement_asd, group = "report", group.equal = c("intercepts", "loadings", "residuals", "means"), std.lv=TRUE)
-summary(strim_inv_w5_asd, rsquare = T, fit.measures=TRUE, standardized=TRUE)
-```
-
 ### Strucutral Invariance 
 
 **Add latent variable variances and covariances**
 
 ```{r}
-stru_inv_w5_asd <- cfa(SDQ, data = w5_measurement_asd, group = "report", group.equal = c("intercepts", "loadings", "residuals", "means", "lv.variances", "lv.covariances"), std.lv=TRUE)
+stru_inv_w5_asd <- cfa(SDQ, data = w5_measurement_asd, group = "report", group.equal = c("intercepts", "loadings", "residuals", "lv.variances", "lv.covariances"), std.lv=TRUE)
 summary(stru_inv_w5_asd, rsquare = T, fit.measures=TRUE, standardized=TRUE)
+```
+
+### Structural + Equal Factor Means
+
+```{r}
+strum_inv_w5_asd <- cfa(SDQ, data = w5_measurement_asd, group = "report", group.equal = c("intercepts", "loadings", "residuals", "lv.variances", "lv.covariances", "means"), std.lv=TRUE)
+summary(strum_inv_w5_asd, rsquare = T, fit.measures=TRUE, standardized=TRUE)
 ```
 
 ### Comparisons
 
 ```{r}
-comp_fit <- compareFit(base_w5_asd, con_inv_w5_asd, met_inv_w5_asd, sca_inv_w5_asd, stri_inv_w5_asd, strim_inv_w5_asd, stru_inv_w5_asd)
+comp_fit <- compareFit(con_inv_w5_asd, met_inv_w5_asd, sca_inv_w5_asd, stri_inv_w5_asd, stru_inv_w5_asd, strum_inv_w5_asd)
 summary(comp_fit,  fit.measures = c("cfi", "rmsea", "srmr"))
+```
+
+``` {r}
+rm(comp_fit)
+rm(w5_measurement_asd)
 ```
 
 ## Wave 7 (Non-ASD)
@@ -1584,7 +1447,7 @@ Need to create "short" format
 ```{r}
 w7_measurement_td <- data_w7_final %>%
   filter(ASD_final == "Non-ASD") %>%
-  pivot_wider(names_from = item, values_from = score)
+  select(-emotional, -conduct, -hyperactivity, -peer, -prosocial)
 ```
 
 ### Factor structure
@@ -1596,10 +1459,28 @@ conduct =~ Q5 + Q7 + Q12 + Q18 + Q22
 hyperactivity =~ Q2 + Q10 + Q15 + Q21 + Q25
 peer =~ Q6 + Q11 + Q14 + Q19 + Q23
 prosocial =~ Q1 + Q4 + Q9 + Q17 + Q20
-"
+" ##same throughout all MI comparisons
+```
 
-base_w7_td <- cfa(SDQ, data = w7_measurement_td, std.lv = TRUE, meanstructure = TRUE)
-summary(base_w7_td, rsquare = T, standardized = T, fit.measures = T)
+### CFA to validate 5-factor structure
+
+``` {r}
+#Parent report
+w7_measurement_td_p <- w7_measurement_td %>% 
+  filter(report == "parent")
+parent_w7_td <- cfa(SDQ, data = w7_measurement_td_p, std.lv = TRUE, meanstructure = TRUE)
+summary(parent_w7_td, rsquare = T, standardized = T, fit.measures = T)
+#cfi .846 (Poor), rmsea .058 (good), srmr, .049 (good)
+
+#self report
+w7_measurement_td_cm <- w7_measurement_td %>% 
+  filter(report == "self")
+self_w7_td <- cfa(SDQ, data = w7_measurement_td_cm, std.lv = TRUE, meanstructure = TRUE)
+summary(self_w7_td, rsquare = T, standardized = T, fit.measures = T)
+#cfi .839 (poor), rmsea .052 (good), srmr, .049 (good)
+
+rm(w7_measurement_td_p)
+rm(w7_measurement_td_cm)
 ```
 
 ### Configural Invariance
@@ -1607,6 +1488,7 @@ summary(base_w7_td, rsquare = T, standardized = T, fit.measures = T)
 ```{r}
 con_inv_w7_td <- cfa(SDQ, data = w7_measurement_td, group = "report", std.lv=TRUE)
 summary(con_inv_w7_td, rsquare = T, fit.measures=TRUE, standardized=TRUE)
+#cfi .843 (poor) , rmsea .055 (good), srmr .049 (good)
 ```
 
 ### Metric Invariance
@@ -1630,27 +1512,32 @@ stri_inv_w7_td <- cfa(SDQ, data = w7_measurement_td, group = "report", group.equ
 summary(stri_inv_w7_td, rsquare = T, fit.measures=TRUE, standardized=TRUE)
 ```
 
-### Strict + Equal Factor Means
-
-```{r}
-strim_inv_w7_td <- cfa(SDQ, data = w7_measurement_td, group = "report", group.equal = c("intercepts", "loadings", "residuals", "means"), std.lv=TRUE)
-summary(strim_inv_w7_td, rsquare = T, fit.measures=TRUE, standardized=TRUE)
-```
-
 ### Strucutral Invariance 
 
 **Add latent variable variances and covariances**
 
 ```{r}
-stru_inv_w7_td <- cfa(SDQ, data = w7_measurement_td, group = "report", group.equal = c("intercepts", "loadings", "residuals", "means", "lv.variances", "lv.covariances"), std.lv=TRUE)
+stru_inv_w7_td <- cfa(SDQ, data = w7_measurement_td, group = "report", group.equal = c("intercepts", "loadings", "residuals", "lv.variances", "lv.covariances"), std.lv=TRUE)
 summary(stru_inv_w7_td, rsquare = T, fit.measures=TRUE, standardized=TRUE)
+```
+
+### Structural + Equal Factor Means
+
+```{r}
+strum_inv_w7_td <- cfa(SDQ, data = w7_measurement_td, group = "report", group.equal = c("intercepts", "loadings", "residuals","lv.variances", "lv.covariances", "means"), std.lv=TRUE)
+summary(strum_inv_w7_td, rsquare = T, fit.measures=TRUE, standardized=TRUE)
 ```
 
 ### Comparisons
 
 ```{r}
-comp_fit <- compareFit(base_w7_td, con_inv_w7_td, met_inv_w7_td, sca_inv_w7_td, stri_inv_w7_td, strim_inv_w7_td, stru_inv_w7_td)
+comp_fit <- compareFit(con_inv_w7_td, met_inv_w7_td, sca_inv_w7_td, stri_inv_w7_td, stru_inv_w7_td, strum_inv_w7_td)
 summary(comp_fit,  fit.measures = c("cfi", "rmsea", "srmr"))
+```
+
+``` {r}
+rm(comp_fit)
+rm(w7_measurement_td)
 ```
 
 ## Wave 7 (ASD)
@@ -1660,7 +1547,7 @@ Need to create "short" format
 ```{r}
 w7_measurement_asd <- data_w7_final %>%
   filter(ASD_final == "ASD") %>%
-  pivot_wider(names_from = item, values_from = score)
+  select(-emotional, -conduct, -hyperactivity, -peer, -prosocial)
 ```
 
 ### Factor structure
@@ -1672,10 +1559,28 @@ conduct =~ Q5 + Q7 + Q12 + Q18 + Q22
 hyperactivity =~ Q2 + Q10 + Q15 + Q21 + Q25
 peer =~ Q6 + Q11 + Q14 + Q19 + Q23
 prosocial =~ Q1 + Q4 + Q9 + Q17 + Q20
-"
+" ##same throughout all MI comparisons
+```
 
-base_w7_asd <- cfa(SDQ, data = w7_measurement_asd, std.lv = TRUE, meanstructure = TRUE)
-summary(base_w7_asd, rsquare = T, standardized = T, fit.measures = T)
+### CFA to validate 5-factor structure
+
+``` {r}
+#Parent report
+w7_measurement_asd_p <- w7_measurement_asd %>% 
+  filter(report == "parent")
+parent_w7_asd <- cfa(SDQ, data = w7_measurement_asd_p, std.lv = TRUE, meanstructure = TRUE)
+summary(parent_w7_asd, rsquare = T, standardized = T, fit.measures = T)
+#cfi .862 (Poor), rmsea .067 (fair fit), srmr, .067 (good)
+
+#self report
+w7_measurement_asd_cm <- w7_measurement_asd %>% 
+  filter(report == "self")
+self_w7_asd <- cfa(SDQ, data = w7_measurement_asd_cm, std.lv = TRUE, meanstructure = TRUE)
+summary(self_w7_asd, rsquare = T, standardized = T, fit.measures = T)
+#cfi .739 (poor), rmsea .082 (poor), srmr, .097 (bad)
+
+rm(w7_measurement_asd_p)
+rm(w7_measurement_asd_cm)
 ```
 
 ### Configural Invariance
@@ -1683,6 +1588,7 @@ summary(base_w7_asd, rsquare = T, standardized = T, fit.measures = T)
 ```{r}
 con_inv_w7_asd <- cfa(SDQ, data = w7_measurement_asd, group = "report", std.lv=TRUE)
 summary(con_inv_w7_asd, rsquare = T, fit.measures=TRUE, standardized=TRUE)
+#cfi .807 (poor), rmsea .075 (fair fit), .082 (poor)
 ```
 
 ### Metric Invariance
@@ -1706,25 +1612,25 @@ stri_inv_w7_asd <- cfa(SDQ, data = w7_measurement_asd, group = "report", group.e
 summary(stri_inv_w7_asd, rsquare = T, fit.measures=TRUE, standardized=TRUE)
 ```
 
-### Strict + Equal Factor Means
-
-```{r}
-strim_inv_w7_asd <- cfa(SDQ, data = w7_measurement_asd, group = "report", group.equal = c("intercepts", "loadings", "residuals", "means"), std.lv=TRUE)
-summary(strim_inv_w7_asd, rsquare = T, fit.measures=TRUE, standardized=TRUE)
-```
-
 ### Strucutral Invariance 
 
 **Add latent variable variances and covariances**
 
 ```{r}
-stru_inv_w7_asd <- cfa(SDQ, data = w7_measurement_asd, group = "report", group.equal = c("intercepts", "loadings", "residuals", "means", "lv.variances", "lv.covariances"), std.lv=TRUE)
+stru_inv_w7_asd <- cfa(SDQ, data = w7_measurement_asd, group = "report", group.equal = c("intercepts", "loadings", "residuals", "lv.variances", "lv.covariances"), std.lv=TRUE)
 summary(stru_inv_w7_asd, rsquare = T, fit.measures=TRUE, standardized=TRUE)
+```
+
+### Structural + Equal Factor Means
+
+```{r}
+strum_inv_w7_asd <- cfa(SDQ, data = w7_measurement_asd, group = "report", group.equal = c("intercepts", "loadings", "residuals", "lv.variances", "lv.covariances", "means"), std.lv=TRUE)
+summary(strum_inv_w7_asd, rsquare = T, fit.measures=TRUE, standardized=TRUE)
 ```
 
 ### Comparisons
 
 ```{r}
-comp_fit <- compareFit(base_w7_asd, con_inv_w7_asd, met_inv_w7_asd, sca_inv_w7_asd, stri_inv_w7_asd, strim_inv_w7_asd, stru_inv_w7_asd)
+comp_fit <- compareFit(con_inv_w7_asd, met_inv_w7_asd, sca_inv_w7_asd, stri_inv_w7_asd, stru_inv_w7_asd, strum_inv_w7_asd)
 summary(comp_fit,  fit.measures = c("cfi", "rmsea", "srmr"))
 ```
