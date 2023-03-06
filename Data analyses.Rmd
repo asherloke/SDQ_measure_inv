@@ -287,6 +287,40 @@ data_w5_parent <- data_w5_parent %>%
                         "2" = 1,
                         "3" = 2))
 
+#reverse score items 7, 11, 14, 21, 25
+data_w5_parent_positive <- data_w5_parent %>%
+  filter(item != "P_w5_SDQ_07" & 
+           item != "P_w5_SDQ_11" & 
+           item != "P_w5_SDQ_14" & 
+           item != "P_w5_SDQ_21" & 
+           item != "P_w5_SDQ_25"
+         )
+
+data_w5_parent_reverse <- data_w5_parent %>%
+  filter(item == "P_w5_SDQ_07" | 
+           item == "P_w5_SDQ_11" | 
+           item == "P_w5_SDQ_14" | 
+           item == "P_w5_SDQ_21" | 
+           item == "P_w5_SDQ_25"
+         )
+
+data_w5_parent_reverse %>% count(score)
+
+#now make 0, 1, 2, into 2, 1, 0.
+data_w5_parent_reverse <- data_w5_parent_reverse %>%
+  mutate(score = recode(score,
+                        "0" = 2,
+                        "1" = 1,
+                        "2" = 0))
+
+data_w5_parent_reverse %>% count(score)
+
+#join back
+data_w5_parent <- bind_rows(data_w5_parent_positive, data_w5_parent_reverse)
+
+rm(data_w5_parent_positive)
+rm(data_w5_parent_reverse)
+
 #check
 data_w5_parent %>% count(score)
 #looks good.
@@ -328,6 +362,40 @@ data_w5_teacher <- data_w5_teacher %>%
                         "1" = 0,
                         "2" = 1,
                         "3" = 2))
+
+#reverse score items 7, 11, 14, 21, 25
+data_w5_teacher_positive <- data_w5_teacher %>%
+  filter(item != "T_w5_SDQ_07" & 
+           item != "T_w5_SDQ_11" & 
+           item != "T_w5_SDQ_14" & 
+           item != "T_w5_SDQ_21" & 
+           item != "T_w5_SDQ_25"
+         )
+
+data_w5_teacher_reverse <- data_w5_teacher %>%
+  filter(item == "T_w5_SDQ_07" | 
+           item == "T_w5_SDQ_11" | 
+           item == "T_w5_SDQ_14" | 
+           item == "T_w5_SDQ_21" | 
+           item == "T_w5_SDQ_25"
+         )
+
+data_w5_teacher_reverse %>% count(score)
+
+#now make 0, 1, 2, into 2, 1, 0.
+data_w5_teacher_reverse <- data_w5_teacher_reverse %>%
+  mutate(score = recode(score,
+                        "0" = 2,
+                        "1" = 1,
+                        "2" = 0))
+
+data_w5_teacher_reverse %>% count(score)
+
+#join back
+data_w5_teacher <- bind_rows(data_w5_teacher_positive, data_w5_teacher_reverse)
+
+rm(data_w5_teacher_positive)
+rm(data_w5_teacher_reverse)
 
 #check
 data_w5_teacher %>% count(score)
@@ -478,6 +546,40 @@ data_w7_parent <- data_w7_parent %>%
                         "2" = 1,
                         "3" = 2))
 
+#reverse score items 7, 11, 14, 21, 25
+data_w7_parent_positive <- data_w7_parent %>%
+  filter(item != "P_w7_SDQ_07" & 
+           item != "P_w7_SDQ_11" & 
+           item != "P_w7_SDQ_14" & 
+           item != "P_w7_SDQ_21" & 
+           item != "P_w7_SDQ_25"
+         )
+
+data_w7_parent_reverse <- data_w7_parent %>%
+  filter(item == "P_w7_SDQ_07" | 
+           item == "P_w7_SDQ_11" | 
+           item == "P_w7_SDQ_14" | 
+           item == "P_w7_SDQ_21" | 
+           item == "P_w7_SDQ_25"
+         )
+
+data_w7_parent_reverse %>% count(score)
+
+#now make 0, 1, 2, into 2, 1, 0.
+data_w7_parent_reverse <- data_w7_parent_reverse %>%
+  mutate(score = recode(score,
+                        "0" = 2,
+                        "1" = 1,
+                        "2" = 0))
+
+data_w7_parent_reverse %>% count(score)
+
+#join back
+data_w7_parent <- bind_rows(data_w7_parent_positive, data_w7_parent_reverse)
+
+rm(data_w7_parent_positive)
+rm(data_w7_parent_reverse)
+
 #check
 data_w7_parent %>% count(score)
 #looks good.
@@ -520,6 +622,40 @@ data_w7_CM <- data_w7_CM %>%
                         "1" = 0,
                         "2" = 1,
                         "3" = 2))
+
+#reverse score items 7, 11, 14, 21, 25
+data_w7_CM_positive <- data_w7_CM %>%
+  filter(item != "CM_w7_SDQ_07" & 
+           item != "CM_w7_SDQ_11" & 
+           item != "CM_w7_SDQ_14" & 
+           item != "CM_w7_SDQ_21" & 
+           item != "CM_w7_SDQ_25"
+         )
+
+data_w7_CM_reverse <- data_w7_CM %>%
+  filter(item == "CM_w7_SDQ_07" | 
+           item == "CM_w7_SDQ_11" | 
+           item == "CM_w7_SDQ_14" | 
+           item == "CM_w7_SDQ_21" | 
+           item == "CM_w7_SDQ_25"
+         )
+
+data_w7_CM_reverse %>% count(score)
+
+#now make 0, 1, 2, into 2, 1, 0.
+data_w7_CM_reverse <- data_w7_CM_reverse %>%
+  mutate(score = recode(score,
+                        "0" = 2,
+                        "1" = 1,
+                        "2" = 0))
+
+data_w7_CM_reverse %>% count(score)
+
+#join back
+data_w7_CM <- bind_rows(data_w7_CM_positive, data_w7_CM_reverse)
+
+rm(data_w7_CM_positive)
+rm(data_w7_CM_reverse)
 
 #check
 data_w7_CM %>% count(score)
