@@ -40,9 +40,9 @@ We then need to insert NAs where they should be and recode the categorical numbe
 #we first deal with ethnicity
 data %>% count(Ethnicity_11cat_1) #see original data and what we need to recode
 data_eth <- data %>% 
-  mutate(ethnicity = na_if(Ethnicity_11cat_1, "-1")) %>%
-  mutate(ethnicity = na_if(ethnicity, "-8")) %>%
-  mutate(ethnicity = na_if(ethnicity, "-9"))
+  mutate(ethnicity = na_if(Ethnicity_11cat_1, -1)) %>%
+  mutate(ethnicity = na_if(ethnicity, -8)) %>%
+  mutate(ethnicity = na_if(ethnicity, -9))
 data_eth %>% count(ethnicity) #see if it worked
 #yes it worked
 
@@ -88,7 +88,7 @@ data_sex3 %>% count(Sex_CM_4) #see original data and what we need to recode
 #there is -1. From convention I assume this is -1
 
 data_sex <- data_sex3 %>% 
-  mutate(sex4 = na_if(Sex_CM_4, "-1"))
+  mutate(sex4 = na_if(Sex_CM_4, -1))
 data_sex %>% count(sex4) #see if it worked
 #yes it worked
 
